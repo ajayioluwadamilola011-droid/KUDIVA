@@ -4,15 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KUDIVA — Wealth, With Clarity</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        kudiva: { dark: '#0d1914', sidebar: '#0b1612', card: '#13271f', emerald: '#173526', mint: '#c2e3c8' }
+                        dark: { DEFAULT: '#0b1612', 900: '#0d1914', 800: '#13271f' },
+                        emerald: { 950: '#0b1612', 900: '#13271f', 800: '#173526', 700: '#234e38', 600: '#2f684c', 500: '#3d8260', 400: '#52a379', 300: '#75c49b', 200: '#a2dbc0', 100: '#c2e3c8', 50: '#edf7ef' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b' }
                     },
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], serif: ['"Playfair Display"', 'serif'] }
                 }
@@ -406,7 +413,7 @@
                                         <p class="text-xs text-slate-500">Target: ₦500,000 · Current: ₦50,000</p>
                                     </div>
                                     <span class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">10%</span>
-                                </div >
+                                </div>
                             </div>
                         </div>
                     </div>
