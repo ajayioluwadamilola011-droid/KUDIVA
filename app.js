@@ -5,7 +5,7 @@ let privacyMask = false;
 
 const INVESTMENT_PLANS = [
     { id: 1, name: "UBA Micro Treasury Alpha", minAmount: 10000, image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80", tag: "Plan 1 (Entry Tier)" },
-    { id: 2, name: "Nigeria Sovereign Growth Yield", minAmount: 25000, image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80", tag: "Plan 2 (Eligible for ₦2k Bonus)" },
+    { id: 2, name: "Nigeria Sovereign Growth Yield", minAmount: 25000, image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80", tag: "Plan 2 (Eligible for Bonus)" },
     { id: 3, name: "Lagos Commercial Real Estate Syndicate", minAmount: 50000, image: "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80", tag: "Plan 3 (Balanced)" },
     { id: 4, name: "Pan-African Fintech Venture Fund", minAmount: 100000, image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80", tag: "Plan 4 (Growth)" },
     { id: 5, name: "West Africa Agro-Export Trust", minAmount: 250000, image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80", tag: "Plan 5 (Commodities)" },
@@ -20,6 +20,13 @@ function getDB() {
     let db = localStorage.getItem('kudiva_master_db');
     if (!db) {
         db = {
+            settings: {
+                minDeposit: 10000,
+                minWithdrawal: 1000,
+                withdrawalFeePercent: 15,
+                ubaAccountNumber: '2231165369',
+                ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE'
+            },
             users: {
                 'omoopeola1@gmail.com': {
                     name: 'Ola Omoope',
@@ -53,8 +60,20 @@ function getDB() {
             ]
         };
         localStorage.setItem('kudiva_master_db', JSON.stringify(db));
+    } else {
+        let parsed = JSON.parse(db);
+        if (!parsed.settings) {
+            parsed.settings = {
+                minDeposit: 10000,
+                minWithdrawal: 1000,
+                withdrawalFeePercent: 15,
+                ubaAccountNumber: '2231165369',
+                ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE'
+            };
+            localStorage.setItem('kudiva_master_db', JSON.stringify(parsed));
+        }
     }
-    return JSON.parse(db);
+    return JSON.parse(localStorage.getItem('kudiva_master_db'));
 }
 
 function saveDB(db) {
@@ -81,9 +100,29 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     renderExplorePlans();
     runAutoYieldDaemon();
+    updateGlobalUIStrings();
 });
 
-// Automatic 10% Daily Yield Engine (Runs silently in background)
+function updateGlobalUIStrings() {
+    const db = getDB();
+    const s = db.settings;
+    document.querySelectorAll('.label-min-dep').forEach(el => el.innerText = '₦' + Number(s.minDeposit).toLocaleString());
+    document.querySelectorAll('.label-min-wit').forEach(el => el.innerText = '₦' + Number(s.minWithdrawal).toLocaleString());
+    
+    const ubaDisplay = document.getElementById('display-uba-info');
+    if (ubaDisplay) ubaDisplay.innerText = `${s.ubaAccountNumber} (${s.ubaAccountName})`;
+    const ubaModalName = document.getElementById('modal-uba-name');
+    if (ubaModalName) ubaModalName.innerText = s.ubaAccountName;
+    const ubaAccNum = document.getElementById('uba-acc-num');
+    if (ubaAccNum) ubaAccNum.innerText = s.ubaAccountNumber;
+    
+    const feePct = document.getElementById('label-fee-pct');
+    if (feePct) feePct.innerText = s.withdrawalFeePercent;
+    const feeLabel = document.getElementById('w-fee-label');
+    if (feeLabel) feeLabel.innerText = `Platform Fee (${s.withdrawalFeePercent}%):`;
+}
+
+// Automatic 10% Daily Yield Engine
 function runAutoYieldDaemon() {
     setInterval(() => {
         const db = getDB();
@@ -106,7 +145,7 @@ function runAutoYieldDaemon() {
                 updateUserUI();
             }
         }
-    }, 60000); // Checks / accrues every 60 seconds automatically
+    }, 60000);
 }
 
 function switchAuthTab(tab) {
@@ -285,6 +324,7 @@ function loadUserData() {
     document.getElementById('referral-link-display').innerText = refLink;
 
     updateUserUI();
+    updateGlobalUIStrings();
 }
 
 function persistUserData() {
@@ -430,9 +470,12 @@ function switchAdminTab(subId) {
     document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
     document.getElementById('admin-sub-' + subId).classList.add('active');
 
-    document.getElementById('adm-btn-approvals').className = subId === 'approvals' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
-    document.getElementById('adm-btn-users').className = subId === 'users' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
-    document.getElementById('adm-btn-tickets').className = subId === 'tickets' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
+    ['approvals', 'users', 'tickets', 'settings'].forEach(id => {
+        const btn = document.getElementById('adm-btn-' + id);
+        if (btn) {
+            btn.className = subId === id ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
+        }
+    });
 
     loadAdminDashboard();
 }
@@ -451,8 +494,9 @@ function openInvestModal(plan) {
 }
 
 function copyUBAAccount() {
-    navigator.clipboard.writeText('2231165369');
-    alert('UBA Account Number (2231165369 - AKINSANYA TIMOTHY OLAKUNLE) copied to clipboard!');
+    const db = getDB();
+    navigator.clipboard.writeText(db.settings.ubaAccountNumber);
+    alert(`UBA Account Number (${db.settings.ubaAccountNumber} - ${db.settings.ubaAccountName}) copied to clipboard!`);
 }
 
 function copyReferralLink() {
@@ -464,9 +508,10 @@ function copyReferralLink() {
 function submitDepositRequest() {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     const ref = document.getElementById('deposit-ref').value.trim();
+    const db = getDB();
     
-    if (!amount || amount < 10000) {
-        alert('Minimum deposit amount is ₦10,000.');
+    if (!amount || amount < db.settings.minDeposit) {
+        alert(`Minimum deposit amount is ₦${Number(db.settings.minDeposit).toLocaleString()}.`);
         return;
     }
     if (!ref) {
@@ -474,15 +519,16 @@ function submitDepositRequest() {
         return;
     }
 
-    const db = getDB();
-    db.pendingQueue.push({
+    const newReq = {
         id: 'DEP-' + Math.floor(100000 + Math.random() * 900000),
         email: currentUser.email,
         type: 'Deposit',
         amount: amount,
         details: `UBA Ref: ${ref}`,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    });
+    };
+
+    db.pendingQueue.push(newReq);
 
     currentUser.transactions.unshift({
         desc: 'UBA Direct Deposit (Pending Admin)',
@@ -496,12 +542,14 @@ function submitDepositRequest() {
     saveDB(db);
     persistUserData();
     closeModal('modal-deposit');
-    alert('Deposit submitted successfully! Awaiting Admin approval (min ₦10,000 deposit).');
+    alert(`Deposit submitted successfully! Awaiting Admin approval.`);
 }
 
 function calculateWithdrawFee() {
+    const db = getDB();
     const gross = parseFloat(document.getElementById('withdraw-gross').value) || 0;
-    const fee = gross * 0.15;
+    const feePct = db.settings.withdrawalFeePercent || 15;
+    const fee = gross * (feePct / 100);
     const net = gross - fee;
     document.getElementById('w-gross-display').innerText = '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 });
     document.getElementById('w-fee-display').innerText = '-₦' + fee.toLocaleString('en-NG', { minimumFractionDigits: 2 });
@@ -509,9 +557,10 @@ function calculateWithdrawFee() {
 }
 
 function submitWithdrawRequest() {
+    const db = getDB();
     const gross = parseFloat(document.getElementById('withdraw-gross').value);
-    if (!gross || gross < 1000) {
-        alert('Minimum withdrawal amount is ₦1,000.');
+    if (!gross || gross < db.settings.minWithdrawal) {
+        alert(`Minimum withdrawal amount is ₦${Number(db.settings.minWithdrawal).toLocaleString()}.`);
         return;
     }
     if (gross > currentUser.balance) {
@@ -519,13 +568,13 @@ function submitWithdrawRequest() {
         return;
     }
 
-    const fee = gross * 0.15;
+    const feePct = db.settings.withdrawalFeePercent || 15;
+    const fee = gross * (feePct / 100);
     const net = gross - fee;
 
     currentUser.balance -= gross;
 
-    const db = getDB();
-    db.pendingQueue.push({
+    const newReq = {
         id: 'WIT-' + Math.floor(100000 + Math.random() * 900000),
         email: currentUser.email,
         type: 'Withdrawal',
@@ -534,7 +583,9 @@ function submitWithdrawRequest() {
         fee: fee,
         details: `Bank: ${currentUser.bank} (${currentUser.accountNumber}) · Net: ₦${net.toLocaleString()}`,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    });
+    };
+
+    db.pendingQueue.push(newReq);
 
     currentUser.transactions.unshift({
         desc: `Withdrawal to ${currentUser.bank} (Pending)`,
@@ -542,13 +593,13 @@ function submitWithdrawRequest() {
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         type: 'Withdrawal',
         amount: '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Pending Approval (15% Fee)'
+        status: `Pending Approval (${feePct}% Fee)`
     });
 
     saveDB(db);
     persistUserData();
     closeModal('modal-withdraw');
-    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your UBA account upon Admin approval (15% fee applied).`);
+    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your UBA account upon Admin approval (${feePct}% fee applied).`);
 }
 
 function executeInvestment() {
@@ -712,6 +763,12 @@ function loadAdminDashboard() {
     document.getElementById('count-total-users').innerText = Object.keys(db.users).length;
     document.getElementById('count-support-tickets').innerText = db.globalTickets.length;
 
+    document.getElementById('setting-min-dep').value = db.settings.minDeposit;
+    document.getElementById('setting-min-wit').value = db.settings.minWithdrawal;
+    document.getElementById('setting-wit-fee').value = db.settings.withdrawalFeePercent;
+    document.getElementById('setting-uba-num').value = db.settings.ubaAccountNumber;
+    document.getElementById('setting-uba-name').value = db.settings.ubaAccountName;
+
     const appTable = document.getElementById('admin-approvals-table');
     if (db.pendingQueue.length === 0) {
         appTable.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No pending requests in queue.</td></tr>`;
@@ -779,6 +836,19 @@ function loadAdminDashboard() {
     }
 }
 
+function saveAdminSettings() {
+    const db = getDB();
+    db.settings.minDeposit = parseFloat(document.getElementById('setting-min-dep').value) || 10000;
+    db.settings.minWithdrawal = parseFloat(document.getElementById('setting-min-wit').value) || 1000;
+    db.settings.withdrawalFeePercent = parseFloat(document.getElementById('setting-wit-fee').value) || 15;
+    db.settings.ubaAccountNumber = document.getElementById('setting-uba-num').value.trim() || '2231165369';
+    db.settings.ubaAccountName = document.getElementById('setting-uba-name').value.trim() || 'AKINSANYA TIMOTHY OLAKUNLE';
+
+    saveDB(db);
+    updateGlobalUIStrings();
+    alert('Platform settings saved successfully and applied platform-wide!');
+}
+
 function adminApprove(index) {
     const db = getDB();
     const item = db.pendingQueue.splice(index, 1)[0];
@@ -791,11 +861,7 @@ function adminApprove(index) {
 
             if (!targetUser.hasFunded) {
                 targetUser.hasFunded = true;
-                if (item.amount >= 50000) {
-                    bonusAwarded = 2000;
-                } else {
-                    bonusAwarded = 1000;
-                }
+                bonusAwarded = item.amount >= 50000 ? 2000 : 1000;
                 finalCredit += bonusAwarded;
             }
 
@@ -810,7 +876,7 @@ function adminApprove(index) {
             });
         } else if (item.type === 'Withdrawal') {
             targetUser.transactions.unshift({
-                desc: `Withdrawal Approved (15% Fee: ₦${Number(item.fee).toLocaleString()})`,
+                desc: `Withdrawal Approved (Fee: ₦${Number(item.fee).toLocaleString()})`,
                 ref: item.id,
                 date: item.date,
                 type: 'Withdrawal',
@@ -835,12 +901,12 @@ function adminReject(index) {
             targetUser.balance += item.amount;
         }
         targetUser.transactions.unshift({
-            desc: `${item.type} Request Rejected by Admin`,
+            desc: `${item.type} Request Failed / Rejected by Admin`,
             ref: item.id,
             date: item.date,
             type: item.type,
             amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-            status: 'Rejected'
+            status: 'Failed / Rejected'
         });
     }
 
