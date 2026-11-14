@@ -33,6 +33,7 @@ function getDB() {
                     email: 'omoopeola1@gmail.com',
                     bank: 'UBA Nigeria',
                     accountNumber: '2231165369',
+                    accountHolder: 'Ola Omoope',
                     refCode: 'KUDIVA-ADMIN',
                     uplineRef: '',
                     balance: 150000.00,
@@ -41,7 +42,7 @@ function getDB() {
                     hasFunded: true,
                     hasActivatedInvestment: true,
                     investments: [
-                        { name: 'UBA Micro Treasury Alpha', rate: 10.0, amount: 50000.00, cycleDays: 24, date: '14 Nov 2026' }
+                        { name: 'UBA Micro Treasury Alpha', rate: 10.0, amount: 50000.00, cycleDays: 24, daysRemaining: 23, nextYieldDue: Date.now() + 86400000, date: '14 Nov 2026' }
                     ],
                     transactions: [
                         { desc: 'UBA Direct Deposit (+ Bonus)', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
@@ -99,7 +100,7 @@ window.addEventListener('DOMContentLoaded', () => {
         unlockApp();
     }
     renderExplorePlans();
-    runAutoYieldDaemon();
+    runStrict24HourYieldDaemon();
     updateGlobalUIStrings();
 });
 
@@ -122,30 +123,62 @@ function updateGlobalUIStrings() {
     if (feeLabel) feeLabel.innerText = `Platform Fee (${s.withdrawalFeePercent}%):`;
 }
 
-// Automatic 10% Daily Yield Engine
-function runAutoYieldDaemon() {
+// Strict 24-Hour Automated Daily Yield Daemon (Runs every 10 seconds checking timestamps)
+function runStrict24HourYieldDaemon() {
     setInterval(() => {
         const db = getDB();
-        let updated = false;
+        let dbUpdated = false;
+        const now = Date.now();
+
         Object.keys(db.users).forEach(email => {
             let u = db.users[email];
-            let earned = 0;
+            if (!u.investments || u.investments.length === 0) return;
+
+            let userInvestedTotal = 0;
             u.investments.forEach(inv => {
-                earned += inv.amount * 0.10;
+                userInvestedTotal += inv.amount;
+                if (!inv.nextYieldDue) inv.nextYieldDue = now + 86400000;
+                if (!inv.daysRemaining) inv.daysRemaining = 24;
+
+                // Check if 24 hours have elapsed and plan still has remaining days
+                if (now >= inv.nextYieldDue && inv.daysRemaining > 0) {
+                    let dailyYieldAmount = inv.amount * 0.10;
+                    u.balance += dailyYieldAmount; // Added directly to available balance
+                    u.dailyYield += dailyYieldAmount;
+                    
+                    inv.daysRemaining -= 1;
+                    inv.nextYieldDue = now + 86400000; // Push next yield drop by exactly 24 hours
+                    dbUpdated = true;
+
+                    u.transactions.unshift({
+                        desc: `10% Daily Auto-Yield Drop (${inv.name})`,
+                        ref: 'KDV-YLD-' + Math.floor(100000 + Math.random() * 900000),
+                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                        type: 'Yield Drop',
+                        amount: '₦' + dailyYieldAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                        status: 'Added to Balance'
+                    });
+                }
             });
-            if (earned > 0) {
-                u.dailyYield += earned;
-                updated = true;
+
+            // Filter out completed 24-day investments
+            let activeInvCount = u.investments.length;
+            u.investments = u.investments.filter(inv => inv.daysRemaining > 0);
+            if (u.investments.length !== activeInvCount) {
+                u.invested = 0;
+                u.investments.forEach(inv => u.invested += inv.amount);
+                dbUpdated = true;
             }
         });
-        if (updated) {
+
+        if (dbUpdated) {
             saveDB(db);
             if (currentUser && db.users[currentUser.email]) {
                 currentUser = db.users[currentUser.email];
                 updateUserUI();
             }
         }
-    }, 60000);
+    }, 10000);
 }
 
 function switchAuthTab(tab) {
@@ -167,6 +200,7 @@ function handleLogin(e) {
                 email: 'omoopeola1@gmail.com',
                 bank: 'UBA Nigeria',
                 accountNumber: '2231165369',
+                accountHolder: 'Ola Omoope',
                 refCode: 'KUDIVA-ADMIN',
                 uplineRef: '',
                 balance: 150000.00,
@@ -207,8 +241,9 @@ function handleRegister(e) {
     db.users[email] = {
         name,
         email,
-        bank: 'UBA Nigeria',
-        accountNumber: '2231165369',
+        bank: '',
+        accountNumber: '',
+        accountHolder: '',
         refCode: generatedRef,
         uplineRef: refCodeInput || '',
         balance: 0.00,
@@ -286,13 +321,13 @@ function renderExplorePlans() {
                         <img src="${plan.image}" alt="${plan.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                         <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-700 text-white text-[10px] font-bold rounded-lg">${plan.tag}</span>
-                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full">10% Daily Auto</span>
+                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full">24h Auto-Yield</span>
                     </div>
                     <div class="p-6 space-y-3">
                         <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
                         <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
                             <div class="flex justify-between text-slate-500"><span>Minimum Capital:</span><strong class="text-slate-900">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
-                            <div class="flex justify-between text-slate-500"><span>Daily Income (10%):</span><strong class="text-emerald-700">₦${Number(dailyIncome).toLocaleString()}</strong></div>
+                            <div class="flex justify-between text-slate-500"><span>Daily Drop (10%):</span><strong class="text-emerald-700">₦${Number(dailyIncome).toLocaleString()} / 24h</strong></div>
                             <div class="flex justify-between text-slate-500 pt-1 border-t border-slate-200"><span>Total Return (24 Days):</span><strong class="text-slate-900 font-bold">₦${Number(totalIncome24Days).toLocaleString()}</strong></div>
                         </div>
                     </div>
@@ -316,7 +351,8 @@ function loadUserData() {
     const firstName = currentUser.name.split(' ')[0];
     document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
     document.getElementById('topbar-username').innerText = currentUser.name;
-    document.getElementById('topbar-bankinfo').innerText = `${currentUser.bank} • ${currentUser.accountNumber}`;
+    document.getElementById('topbar-bankinfo').innerText = currentUser.accountNumber ? `${currentUser.bank || 'Bank'} • ${currentUser.accountNumber}` : 'No Bank Set';
+    document.getElementById('topbar-bank-tag').innerText = currentUser.accountNumber ? 'Edit Bank Account' : 'Set Bank Account';
     document.getElementById('user-initials-badge').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
     
     const userRefCode = currentUser.refCode || 'KUDIVA-LEKKXY26';
@@ -325,6 +361,7 @@ function loadUserData() {
 
     updateUserUI();
     updateGlobalUIStrings();
+    loadReferralDownlines(db);
 }
 
 function persistUserData() {
@@ -336,7 +373,7 @@ function persistUserData() {
 
 function updateUserUI() {
     const fmtBal = privacyMask ? '₦••••••' : '₦' + Number(currentUser.balance).toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    const fmtPort = privacyMask ? '₦••••••' : '₦' + Number(currentUser.invested + currentUser.dailyYield).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+    const fmtPort = privacyMask ? '₦••••••' : '₦' + Number(currentUser.invested).toLocaleString('en-NG', { minimumFractionDigits: 2 });
     const fmtYield = privacyMask ? '₦••••••' : '₦' + Number(currentUser.dailyYield).toLocaleString('en-NG', { minimumFractionDigits: 2 });
 
     document.getElementById('stat-portfolio-value').innerText = fmtPort;
@@ -359,27 +396,33 @@ function updateUserUI() {
                 <td class="p-4 text-xs text-slate-500">${tx.date}</td>
                 <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">${tx.type}</span></td>
                 <td class="p-4 font-bold text-slate-900">${tx.amount}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
+                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' || tx.status.includes('Balance') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
             </tr>
         `).join('');
     }
 
     const holdingsList = document.getElementById('portfolio-holdings-list');
-    if (currentUser.investments.length === 0) {
+    if (!currentUser.investments || currentUser.investments.length === 0) {
         holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore our 10 plans to earn daily for 24 days.</div>`;
     } else {
-        holdingsList.innerHTML = currentUser.investments.map((inv, idx) => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div>
-                    <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
-                    <p class="text-xs text-slate-500">Cycle: 24 Days · Principal: ₦${Number(inv.amount).toLocaleString()} · Daily: ₦${Number(inv.amount * 0.10).toLocaleString()}</p>
+        holdingsList.innerHTML = currentUser.investments.map((inv) => {
+            const timeLeft = Math.max(0, Math.floor((inv.nextYieldDue - Date.now()) / 1000));
+            const hours = Math.floor(timeLeft / 3600);
+            const minutes = Math.floor((timeLeft % 3600) / 60);
+
+            return `
+                <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
+                        <p class="text-xs text-slate-500">Principal: ₦${Number(inv.amount).toLocaleString()} · Daily Drop: ₦${Number(inv.amount * 0.10).toLocaleString()} · Days Left: <strong>${inv.daysRemaining}/24</strong></p>
+                    </div>
+                    <div class="text-right bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 text-xs">
+                        <span class="text-emerald-800 font-bold block"><i class="fa-solid fa-clock mr-1"></i> Next Yield Drop in:</span>
+                        <strong class="font-mono text-emerald-950">${hours}h ${minutes}m</strong>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <div class="font-bold text-emerald-700">+ 10% Daily Auto</div>
-                    <button onclick="harvestYield(${idx})" class="text-[11px] bg-emerald-700 text-white px-3 py-1 rounded-lg mt-1 font-bold hover:bg-emerald-800 transition">Harvest Yield to Wallet</button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     const goalsList = document.getElementById('goals-list');
@@ -415,6 +458,59 @@ function updateUserUI() {
                 <p class="text-xs text-slate-600"><strong>Query:</strong> ${t.msg}</p>
                 <p class="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200"><strong>Admin Reply:</strong> ${t.reply || 'Pending Admin review...'}</p>
             </div>
+        `).join('');
+    }
+}
+
+function loadReferralDownlines(db) {
+    const downlineTbody = document.getElementById('referral-downlines-tbody');
+    let downlines = [];
+    let totalTeamDeposit = 0;
+    let totalTeamEarnings = 0;
+
+    Object.keys(db.users).forEach(email => {
+        let u = db.users[email];
+        if (u.uplineRef && u.uplineRef === currentUser.refCode) {
+            let userInvested = u.invested || 0;
+            totalTeamDeposit += userInvested;
+
+            // Calculate commission earned from this user based on transactions
+            let commEarned = 0;
+            currentUser.transactions.forEach(tx => {
+                if (tx.desc && tx.desc.includes(u.name)) {
+                    let parts = tx.amount.replace('₦','').replace(/,/g,'');
+                    commEarned += parseFloat(parts) || 0;
+                }
+            });
+            totalTeamEarnings += commEarned;
+
+            downlines.push({
+                name: u.name,
+                email: u.email,
+                date: u.createdAt || '14 Nov 2026',
+                invested: userInvested,
+                earned: commEarned
+            });
+        }
+    });
+
+    document.getElementById('stat-team-deposit').innerText = '₦' + totalTeamDeposit.toLocaleString('en-NG', { minimumFractionDigits: 2 });
+    document.getElementById('stat-team-earnings').innerText = '₦' + totalTeamEarnings.toLocaleString('en-NG', { minimumFractionDigits: 2 });
+    document.getElementById('stat-team-count').innerText = downlines.length;
+
+    if (downlines.length === 0) {
+        downlineTbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">No referral downlines yet. Share your link to start earning!</td></tr>`;
+    } else {
+        downlineTbody.innerHTML = downlines.map(d => `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-4">
+                    <div class="font-bold text-slate-900">${d.name}</div>
+                    <div class="text-xs text-slate-500">${d.email}</div>
+                </td>
+                <td class="p-4 text-xs text-slate-500">${d.date}</td>
+                <td class="p-4 font-bold text-slate-900">₦${Number(d.invested).toLocaleString()}</td>
+                <td class="p-4 font-bold text-emerald-700">₦${Number(d.earned).toLocaleString()}</td>
+            </tr>
         `).join('');
     }
 }
@@ -480,15 +576,58 @@ function switchAdminTab(subId) {
     loadAdminDashboard();
 }
 
+function openBankModal() {
+    if (currentUser) {
+        document.getElementById('user-bank-name').value = currentUser.bank || '';
+        document.getElementById('user-bank-num').value = currentUser.accountNumber || '';
+        document.getElementById('user-bank-holder').value = currentUser.accountHolder || currentUser.name || '';
+    }
+    document.getElementById('modal-bank').classList.remove('hidden');
+}
+
+function saveUserBankAccount() {
+    const bankName = document.getElementById('user-bank-name').value.trim();
+    const bankNum = document.getElementById('user-bank-num').value.trim();
+    const bankHolder = document.getElementById('user-bank-holder').value.trim();
+
+    if (!bankName || !bankNum || !bankHolder) {
+        alert('Please fill out all bank account fields.');
+        return;
+    }
+    if (bankNum.length !== 10) {
+        alert('Account number must be 10 digits.');
+        return;
+    }
+
+    currentUser.bank = bankName;
+    currentUser.accountNumber = bankNum;
+    currentUser.accountHolder = bankHolder;
+
+    persistUserData();
+    closeModal('modal-bank');
+    loadUserData();
+    alert('Withdrawal bank account saved successfully!');
+}
+
 function openDepositModal() { document.getElementById('modal-deposit').classList.remove('hidden'); }
-function openWithdrawModal() { document.getElementById('modal-withdraw').classList.add('hidden'); calculateWithdrawFee(); document.getElementById('modal-withdraw').classList.remove('hidden'); }
+function openWithdrawModal() { 
+    if (!currentUser.accountNumber) {
+        alert('Please set your withdrawal bank account first.');
+        openBankModal();
+        return;
+    }
+    document.getElementById('withdraw-bank-preview').innerText = `${currentUser.bank} - ${currentUser.accountNumber} (${currentUser.accountHolder})`;
+    document.getElementById('modal-withdraw').classList.add('hidden'); 
+    calculateWithdrawFee(); 
+    document.getElementById('modal-withdraw').classList.remove('hidden'); 
+}
 function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 function openInvestModal(plan) {
     selectedPlanForInvest = plan;
     document.getElementById('invest-modal-title').innerText = `Invest in ${plan.name}`;
-    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily Auto for 24 Days`;
+    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily Auto Return (Every 24h) for 24 Days`;
     document.getElementById('invest-amount').value = plan.minAmount;
     document.getElementById('modal-invest').classList.remove('hidden');
 }
@@ -588,7 +727,7 @@ function submitWithdrawRequest() {
     db.pendingQueue.push(newReq);
 
     currentUser.transactions.unshift({
-        desc: `Withdrawal to ${currentUser.bank} (Pending)`,
+        desc: `Withdrawal to ${currentUser.bank} (${currentUser.accountNumber}) (Pending)`,
         ref: 'KDV-WIT-' + Math.floor(100000 + Math.random() * 900000),
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         type: 'Withdrawal',
@@ -621,6 +760,8 @@ function executeInvestment() {
         rate: 10.0,
         amount: amount,
         cycleDays: 24,
+        daysRemaining: 24,
+        nextYieldDue: Date.now() + 86400000, // Exactly 24 hours from now for first yield drop
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
@@ -630,7 +771,7 @@ function executeInvestment() {
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         type: 'Investment',
         amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Active (10% Daily Auto for 24 Days)'
+        status: 'Active (10% Daily Auto Every 24h)'
     });
 
     if (!currentUser.hasActivatedInvestment) {
@@ -640,7 +781,7 @@ function executeInvestment() {
 
     persistUserData();
     closeModal('modal-invest');
-    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name} (10% daily auto for 24 days active)!`);
+    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name}! First 10% daily yield will drop in exactly 24 hours.`);
 }
 
 function distributeReferralCommissions(investAmount) {
@@ -668,7 +809,7 @@ function distributeReferralCommissions(investAmount) {
                     let comm2 = investAmount * 0.03;
                     db.users[l2UserEmail].balance += comm2;
                     db.users[l2UserEmail].transactions.unshift({
-                        desc: `Referral Commission (Level 2 - 3%)`,
+                        desc: `Referral Commission (Level 2 - 3% from ${currentUser.name})`,
                         ref: 'REF-L2-' + Math.floor(1000 + Math.random() * 9000),
                         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                         type: 'Commission',
@@ -683,7 +824,7 @@ function distributeReferralCommissions(investAmount) {
                             let comm3 = investAmount * 0.01;
                             db.users[l3UserEmail].balance += comm3;
                             db.users[l3UserEmail].transactions.unshift({
-                                desc: `Referral Commission (Level 3 - 1%)`,
+                                desc: `Referral Commission (Level 3 - 1% from ${currentUser.name})`,
                                 ref: 'REF-L3-' + Math.floor(1000 + Math.random() * 9000),
                                 date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                                 type: 'Commission',
@@ -697,23 +838,6 @@ function distributeReferralCommissions(investAmount) {
         }
     }
     saveDB(db);
-}
-
-function harvestYield(idx) {
-    const yieldAmount = currentUser.dailyYield;
-    if (yieldAmount <= 0) return alert('No accrued yield to harvest');
-    currentUser.balance += yieldAmount;
-    currentUser.dailyYield = 0;
-    currentUser.transactions.unshift({
-        desc: 'Harvested 10% Daily Auto-Yield to Wallet',
-        ref: 'KDV-YLD-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        type: 'Yield Harvest',
-        amount: '₦' + yieldAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Success'
-    });
-    persistUserData();
-    alert(`Successfully transferred ₦${yieldAmount.toLocaleString()} to your Available Balance!`);
 }
 
 function executeCreateGoal() {
@@ -799,7 +923,7 @@ function loadAdminDashboard() {
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-4">
                         <div class="font-bold text-slate-900">${u.name}</div>
-                        <div class="text-xs text-slate-500">${u.email}</div>
+                        <div class="text-xs text-slate-500">${u.email} (${u.accountNumber ? u.bank + ' - ' + u.accountNumber : 'No Bank'})</div>
                     </td>
                     <td class="p-4 text-xs">
                         <div class="font-mono font-bold text-emerald-800">${u.refCode || 'N/A'}</div>
