@@ -51,7 +51,7 @@ function getDB() {
                         { name: 'UBA Emergency Reserve', target: 500000, current: 50000 }
                     ],
                     tickets: [
-                        { category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
+                        { id: 1, category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
                     ]
                 }
             },
@@ -61,18 +61,6 @@ function getDB() {
             ]
         };
         localStorage.setItem('kudiva_master_db', JSON.stringify(db));
-    } else {
-        let parsed = JSON.parse(db);
-        if (!parsed.settings) {
-            parsed.settings = {
-                minDeposit: 10000,
-                minWithdrawal: 1000,
-                withdrawalFeePercent: 15,
-                ubaAccountNumber: '2231165369',
-                ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE'
-            };
-            localStorage.setItem('kudiva_master_db', JSON.stringify(parsed));
-        }
     }
     return JSON.parse(localStorage.getItem('kudiva_master_db'));
 }
@@ -123,7 +111,7 @@ function updateGlobalUIStrings() {
     if (feeLabel) feeLabel.innerText = `Platform Fee (${s.withdrawalFeePercent}%):`;
 }
 
-// Strict 24-Hour Automated Daily Yield Daemon (Runs every 10 seconds checking timestamps)
+// Strict 24-Hour Automated Daily Yield Daemon
 function runStrict24HourYieldDaemon() {
     setInterval(() => {
         const db = getDB();
@@ -134,20 +122,17 @@ function runStrict24HourYieldDaemon() {
             let u = db.users[email];
             if (!u.investments || u.investments.length === 0) return;
 
-            let userInvestedTotal = 0;
             u.investments.forEach(inv => {
-                userInvestedTotal += inv.amount;
                 if (!inv.nextYieldDue) inv.nextYieldDue = now + 86400000;
                 if (!inv.daysRemaining) inv.daysRemaining = 24;
 
-                // Check if 24 hours have elapsed and plan still has remaining days
                 if (now >= inv.nextYieldDue && inv.daysRemaining > 0) {
                     let dailyYieldAmount = inv.amount * 0.10;
-                    u.balance += dailyYieldAmount; // Added directly to available balance
+                    u.balance += dailyYieldAmount;
                     u.dailyYield += dailyYieldAmount;
                     
                     inv.daysRemaining -= 1;
-                    inv.nextYieldDue = now + 86400000; // Push next yield drop by exactly 24 hours
+                    inv.nextYieldDue = now + 86400000;
                     dbUpdated = true;
 
                     u.transactions.unshift({
@@ -161,7 +146,6 @@ function runStrict24HourYieldDaemon() {
                 }
             });
 
-            // Filter out completed 24-day investments
             let activeInvCount = u.investments.length;
             u.investments = u.investments.filter(inv => inv.daysRemaining > 0);
             if (u.investments.length !== activeInvCount) {
@@ -474,7 +458,6 @@ function loadReferralDownlines(db) {
             let userInvested = u.invested || 0;
             totalTeamDeposit += userInvested;
 
-            // Calculate commission earned from this user based on transactions
             let commEarned = 0;
             currentUser.transactions.forEach(tx => {
                 if (tx.desc && tx.desc.includes(u.name)) {
@@ -761,7 +744,7 @@ function executeInvestment() {
         amount: amount,
         cycleDays: 24,
         daysRemaining: 24,
-        nextYieldDue: Date.now() + 86400000, // Exactly 24 hours from now for first yield drop
+        nextYieldDue: Date.now() + 86400000,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
