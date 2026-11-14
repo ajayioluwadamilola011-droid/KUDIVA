@@ -1,3 +1,11 @@
+// ==========================================
+// SUPABASE LIVE CONFIGURATION
+// ==========================================
+const SUPABASE_URL = 'https://hbleacgjtfkvjdzchjov.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_jvldVxF-_wdvvq_UHYUEaw_sVyF-GsZ';
+
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 let currentUser = null;
 let isAdmin = false;
 let selectedPlanForInvest = null;
@@ -16,74 +24,34 @@ const INVESTMENT_PLANS = [
     { id: 10, name: "Sovereign Apex Elite Portfolio", minAmount: 10000000, image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80", tag: "Plan 10 (Apex Tier)" }
 ];
 
-function getDB() {
-    let db = localStorage.getItem('kudiva_master_db');
-    if (!db) {
-        db = {
-            settings: {
-                minDeposit: 10000,
-                minWithdrawal: 1000,
-                withdrawalFeePercent: 15,
-                ubaAccountNumber: '2231165369',
-                ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE'
-            },
-            users: {
-                'omoopeola1@gmail.com': {
-                    name: 'Ola Omoope',
-                    email: 'omoopeola1@gmail.com',
-                    bank: 'UBA Nigeria',
-                    accountNumber: '2231165369',
-                    accountHolder: 'Ola Omoope',
-                    refCode: 'KUDIVA-ADMIN',
-                    uplineRef: '',
-                    balance: 150000.00,
-                    invested: 50000.00,
-                    dailyYield: 12500.00,
-                    hasFunded: true,
-                    hasActivatedInvestment: true,
-                    investments: [
-                        { name: 'UBA Micro Treasury Alpha', rate: 10.0, amount: 50000.00, cycleDays: 24, daysRemaining: 23, nextYieldDue: Date.now() + 86400000, date: '14 Nov 2026' }
-                    ],
-                    transactions: [
-                        { desc: 'UBA Direct Deposit (+ Bonus)', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
-                    ],
-                    goals: [
-                        { name: 'UBA Emergency Reserve', target: 500000, current: 50000 }
-                    ],
-                    tickets: [
-                        { id: 1, category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
-                    ]
-                }
-            },
-            pendingQueue: [],
-            globalTickets: [
-                { id: 1, email: 'omoopeola1@gmail.com', category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
-            ]
-        };
-        localStorage.setItem('kudiva_master_db', JSON.stringify(db));
+async function getPlatformSettings() {
+    if (!supabaseClient) return { minDeposit: 10000, minWithdrawal: 1000, withdrawalFeePercent: 15, ubaAccountNumber: '2231165369', ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE' };
+    const { data } = await supabaseClient.from('platform_settings').select('*');
+    let settings = { minDeposit: 10000, minWithdrawal: 1000, withdrawalFeePercent: 15, ubaAccountNumber: '2231165369', ubaAccountName: 'AKINSANYA TIMOTHY OLAKUNLE' };
+    if (data) {
+        data.forEach(item => {
+            if (item.key === 'min_deposit') settings.minDeposit = parseFloat(item.value);
+            if (item.key === 'min_withdrawal') settings.minWithdrawal = parseFloat(item.value);
+            if (item.key === 'withdrawal_fee_percent') settings.withdrawalFeePercent = parseFloat(item.value);
+            if (item.key === 'uba_account_number') settings.ubaAccountNumber = item.value;
+            if (item.key === 'uba_account_name') settings.ubaAccountName = item.value;
+        });
     }
-    return JSON.parse(localStorage.getItem('kudiva_master_db'));
+    return settings;
 }
 
-function saveDB(db) {
-    localStorage.setItem('kudiva_master_db', JSON.stringify(db));
-}
-
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const refParam = urlParams.get('ref');
     if (refParam) {
         const refInput = document.getElementById('reg-refcode');
-        if (refInput) {
-            refInput.value = refParam.toUpperCase();
-        }
+        if (refInput) refInput.value = refParam.toUpperCase();
         switchAuthTab('register');
     }
 
     const activeSession = localStorage.getItem('kudiva_active_session');
     if (activeSession) {
-        const session = JSON.parse(activeSession);
-        currentUser = session.user;
+        currentUser = JSON.parse(activeSession);
         isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
         unlockApp();
     }
@@ -92,9 +60,8 @@ window.addEventListener('DOMContentLoaded', () => {
     updateGlobalUIStrings();
 });
 
-function updateGlobalUIStrings() {
-    const db = getDB();
-    const s = db.settings;
+async function updateGlobalUIStrings() {
+    const s = await getPlatformSettings();
     document.querySelectorAll('.label-min-dep').forEach(el => el.innerText = '₦' + Number(s.minDeposit).toLocaleString());
     document.querySelectorAll('.label-min-wit').forEach(el => el.innerText = '₦' + Number(s.minWithdrawal).toLocaleString());
     
@@ -111,31 +78,26 @@ function updateGlobalUIStrings() {
     if (feeLabel) feeLabel.innerText = `Platform Fee (${s.withdrawalFeePercent}%):`;
 }
 
-// Strict 24-Hour Automated Daily Yield Daemon
 function runStrict24HourYieldDaemon() {
-    setInterval(() => {
-        const db = getDB();
-        let dbUpdated = false;
+    setInterval(async () => {
+        if (!currentUser || !supabaseClient) return;
         const now = Date.now();
+        let updated = false;
 
-        Object.keys(db.users).forEach(email => {
-            let u = db.users[email];
-            if (!u.investments || u.investments.length === 0) return;
-
-            u.investments.forEach(inv => {
+        if (currentUser.investments && currentUser.investments.length > 0) {
+            currentUser.investments.forEach(inv => {
                 if (!inv.nextYieldDue) inv.nextYieldDue = now + 86400000;
                 if (!inv.daysRemaining) inv.daysRemaining = 24;
 
                 if (now >= inv.nextYieldDue && inv.daysRemaining > 0) {
                     let dailyYieldAmount = inv.amount * 0.10;
-                    u.balance += dailyYieldAmount;
-                    u.dailyYield += dailyYieldAmount;
-                    
+                    currentUser.balance += dailyYieldAmount;
+                    currentUser.dailyYield += dailyYieldAmount;
                     inv.daysRemaining -= 1;
                     inv.nextYieldDue = now + 86400000;
-                    dbUpdated = true;
+                    updated = true;
 
-                    u.transactions.unshift({
+                    currentUser.transactions.unshift({
                         desc: `10% Daily Auto-Yield Drop (${inv.name})`,
                         ref: 'KDV-YLD-' + Math.floor(100000 + Math.random() * 900000),
                         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -146,20 +108,9 @@ function runStrict24HourYieldDaemon() {
                 }
             });
 
-            let activeInvCount = u.investments.length;
-            u.investments = u.investments.filter(inv => inv.daysRemaining > 0);
-            if (u.investments.length !== activeInvCount) {
-                u.invested = 0;
-                u.investments.forEach(inv => u.invested += inv.amount);
-                dbUpdated = true;
-            }
-        });
-
-        if (dbUpdated) {
-            saveDB(db);
-            if (currentUser && db.users[currentUser.email]) {
-                currentUser = db.users[currentUser.email];
-                updateUserUI();
+            currentUser.investments = currentUser.investments.filter(inv => inv.daysRemaining > 0);
+            if (updated) {
+                await persistUserData();
             }
         }
     }, 10000);
@@ -173,56 +124,75 @@ function switchAuthTab(tab) {
     document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const db = getDB();
-    if (!db.users[email]) {
-        if (email === 'omoopeola1@gmail.com') {
-            db.users['omoopeola1@gmail.com'] = {
-                name: 'Ola Omoope',
-                email: 'omoopeola1@gmail.com',
-                bank: 'UBA Nigeria',
-                accountNumber: '2231165369',
-                accountHolder: 'Ola Omoope',
-                refCode: 'KUDIVA-ADMIN',
-                uplineRef: '',
-                balance: 150000.00,
-                invested: 50000.00,
-                dailyYield: 12500.00,
-                hasFunded: true,
-                hasActivatedInvestment: true,
+
+    if (email === 'omoopeola1@gmail.com') {
+        currentUser = {
+            name: 'Ola Omoope',
+            email: 'omoopeola1@gmail.com',
+            bank: 'UBA Nigeria',
+            accountNumber: '2231165369',
+            accountHolder: 'Ola Omoope',
+            refCode: 'KUDIVA-ADMIN',
+            uplineRef: '',
+            balance: 150000.00,
+            invested: 50000.00,
+            dailyYield: 12500.00,
+            hasFunded: true,
+            hasActivatedInvestment: true,
+            investments: [],
+            transactions: [],
+            goals: [],
+            tickets: []
+        };
+        completeLogin();
+        return;
+    }
+
+    if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('profiles').select('*').eq('email', email).single();
+        if (data) {
+            currentUser = {
+                name: data.name,
+                email: data.email,
+                bank: data.bank || '',
+                accountNumber: data.account_number || '',
+                accountHolder: data.account_holder || '',
+                refCode: data.ref_code,
+                uplineRef: data.upline_ref || '',
+                balance: parseFloat(data.balance) || 0,
+                invested: parseFloat(data.invested) || 0,
+                dailyYield: parseFloat(data.daily_yield) || 0,
+                hasFunded: data.has_funded,
+                hasActivatedInvestment: data.has_activated_investment,
                 investments: [],
                 transactions: [],
-                goals: [],
+                goals: [{ name: 'Emergency Reserve', target: 500000, current: 0 }],
                 tickets: []
             };
-            saveDB(db);
-        } else {
-            alert('Account not found. Please register first.');
+
+            const { data: txs } = await supabaseClient.from('transactions').select('*').eq('user_email', email);
+            if (txs) {
+                currentUser.transactions = txs.map(t => ({ desc: t.description, ref: t.reference, date: new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), type: t.type, amount: t.amount, status: t.status }));
+            }
+
+            completeLogin();
             return;
         }
     }
-    currentUser = db.users[email];
-    isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
-    completeLogin();
+    alert('Account not found in database. Please register first.');
 }
 
-function handleRegister(e) {
+async function handleRegister(e) {
     e.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim().toLowerCase();
     const refCodeInput = document.getElementById('reg-refcode').value.trim().toUpperCase();
-
-    const db = getDB();
-    if (db.users[email]) {
-        alert('An account with this email already exists.');
-        return;
-    }
-
     const generatedRef = 'KUDIVA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    db.users[email] = {
+    currentUser = {
         name,
         email,
         bank: '',
@@ -240,15 +210,24 @@ function handleRegister(e) {
         goals: [{ name: 'Initial Savings Target', target: 200000, current: 0 }],
         tickets: []
     };
-    saveDB(db);
 
-    currentUser = db.users[email];
-    isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
+    if (supabaseClient) {
+        await supabaseClient.from('profiles').insert({
+            email: email,
+            name: name,
+            ref_code: generatedRef,
+            upline_ref: refCodeInput || '',
+            balance: 0.00,
+            invested: 0.00,
+            daily_yield: 0.00
+        });
+    }
+
     completeLogin();
 }
 
 function completeLogin() {
-    localStorage.setItem('kudiva_active_session', JSON.stringify({ user: currentUser }));
+    localStorage.setItem('kudiva_active_session', JSON.stringify(currentUser));
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('app-wrapper').classList.remove('opacity-40', 'pointer-events-none');
     
@@ -327,11 +306,8 @@ function renderExplorePlans() {
     }).join('');
 }
 
-function loadUserData() {
-    const db = getDB();
-    if (!currentUser || !db.users[currentUser.email]) return;
-    currentUser = db.users[currentUser.email];
-
+async function loadUserData() {
+    if (!currentUser) return;
     const firstName = currentUser.name.split(' ')[0];
     document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
     document.getElementById('topbar-username').innerText = currentUser.name;
@@ -345,13 +321,23 @@ function loadUserData() {
 
     updateUserUI();
     updateGlobalUIStrings();
-    loadReferralDownlines(db);
+    await loadReferralDownlines();
 }
 
-function persistUserData() {
-    const db = getDB();
-    db.users[currentUser.email] = currentUser;
-    saveDB(db);
+async function persistUserData() {
+    localStorage.setItem('kudiva_active_session', JSON.stringify(currentUser));
+    if (supabaseClient) {
+        await supabaseClient.from('profiles').update({
+            bank: currentUser.bank,
+            account_number: currentUser.accountNumber,
+            account_holder: currentUser.accountHolder,
+            balance: currentUser.balance,
+            invested: currentUser.invested,
+            daily_yield: currentUser.dailyYield,
+            has_funded: currentUser.hasFunded,
+            has_activated_investment: currentUser.hasActivatedInvestment
+        }).eq('email', currentUser.email);
+    }
     updateUserUI();
 }
 
@@ -364,13 +350,9 @@ function updateUserUI() {
     document.getElementById('stat-available-balance').innerText = fmtBal;
     document.getElementById('stat-daily-yield').innerText = fmtYield;
     document.getElementById('portfolio-total-large').innerText = fmtPort;
-    
-    const db = getDB();
-    const pendingCount = db.pendingQueue.filter(q => q.email === currentUser.email).length;
-    document.getElementById('stat-pending-count').innerText = pendingCount;
 
     const tbody = document.getElementById('transactions-table-body');
-    if (currentUser.transactions.length === 0) {
+    if (!currentUser.transactions || currentUser.transactions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No transactions recorded yet.</td></tr>`;
     } else {
         tbody.innerHTML = currentUser.transactions.map(tx => `
@@ -446,56 +428,49 @@ function updateUserUI() {
     }
 }
 
-function loadReferralDownlines(db) {
+async function loadReferralDownlines() {
     const downlineTbody = document.getElementById('referral-downlines-tbody');
-    let downlines = [];
+    if (!supabaseClient) return;
+
+    const { data: downlines } = await supabaseClient.from('profiles').select('*').eq('upline_ref', currentUser.refCode);
     let totalTeamDeposit = 0;
     let totalTeamEarnings = 0;
 
-    Object.keys(db.users).forEach(email => {
-        let u = db.users[email];
-        if (u.uplineRef && u.uplineRef === currentUser.refCode) {
-            let userInvested = u.invested || 0;
+    let rowsHtml = '';
+    if (!downlines || downlines.length === 0) {
+        downlineTbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">No referral downlines yet. Share your link to start earning!</td></tr>`;
+    } else {
+        downlines.forEach(d => {
+            let userInvested = parseFloat(d.invested) || 0;
             totalTeamDeposit += userInvested;
 
             let commEarned = 0;
             currentUser.transactions.forEach(tx => {
-                if (tx.desc && tx.desc.includes(u.name)) {
+                if (tx.desc && tx.desc.includes(d.name)) {
                     let parts = tx.amount.replace('₦','').replace(/,/g,'');
                     commEarned += parseFloat(parts) || 0;
                 }
             });
             totalTeamEarnings += commEarned;
 
-            downlines.push({
-                name: u.name,
-                email: u.email,
-                date: u.createdAt || '14 Nov 2026',
-                invested: userInvested,
-                earned: commEarned
-            });
-        }
-    });
+            rowsHtml += `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-900">${d.name}</div>
+                        <div class="text-xs text-slate-500">${d.email}</div>
+                    </td>
+                    <td class="p-4 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td class="p-4 font-bold text-slate-900">₦${userInvested.toLocaleString()}</td>
+                    <td class="p-4 font-bold text-emerald-700">₦${commEarned.toLocaleString()}</td>
+                </tr>
+            `;
+        });
+        downlineTbody.innerHTML = rowsHtml;
+    }
 
     document.getElementById('stat-team-deposit').innerText = '₦' + totalTeamDeposit.toLocaleString('en-NG', { minimumFractionDigits: 2 });
     document.getElementById('stat-team-earnings').innerText = '₦' + totalTeamEarnings.toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    document.getElementById('stat-team-count').innerText = downlines.length;
-
-    if (downlines.length === 0) {
-        downlineTbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">No referral downlines yet. Share your link to start earning!</td></tr>`;
-    } else {
-        downlineTbody.innerHTML = downlines.map(d => `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-4">
-                    <div class="font-bold text-slate-900">${d.name}</div>
-                    <div class="text-xs text-slate-500">${d.email}</div>
-                </td>
-                <td class="p-4 text-xs text-slate-500">${d.date}</td>
-                <td class="p-4 font-bold text-slate-900">₦${Number(d.invested).toLocaleString()}</td>
-                <td class="p-4 font-bold text-emerald-700">₦${Number(d.earned).toLocaleString()}</td>
-            </tr>
-        `).join('');
-    }
+    document.getElementById('stat-team-count').innerText = downlines ? downlines.length : 0;
 }
 
 function switchTab(tabId) {
@@ -568,7 +543,7 @@ function openBankModal() {
     document.getElementById('modal-bank').classList.remove('hidden');
 }
 
-function saveUserBankAccount() {
+async function saveUserBankAccount() {
     const bankName = document.getElementById('user-bank-name').value.trim();
     const bankNum = document.getElementById('user-bank-num').value.trim();
     const bankHolder = document.getElementById('user-bank-holder').value.trim();
@@ -586,7 +561,7 @@ function saveUserBankAccount() {
     currentUser.accountNumber = bankNum;
     currentUser.accountHolder = bankHolder;
 
-    persistUserData();
+    await persistUserData();
     closeModal('modal-bank');
     loadUserData();
     alert('Withdrawal bank account saved successfully!');
@@ -615,10 +590,10 @@ function openInvestModal(plan) {
     document.getElementById('modal-invest').classList.remove('hidden');
 }
 
-function copyUBAAccount() {
-    const db = getDB();
-    navigator.clipboard.writeText(db.settings.ubaAccountNumber);
-    alert(`UBA Account Number (${db.settings.ubaAccountNumber} - ${db.settings.ubaAccountName}) copied to clipboard!`);
+async function copyUBAAccount() {
+    const s = await getPlatformSettings();
+    navigator.clipboard.writeText(s.ubaAccountNumber);
+    alert(`UBA Account Number (${s.ubaAccountNumber} - ${s.ubaAccountName}) copied to clipboard!`);
 }
 
 function copyReferralLink() {
@@ -627,13 +602,13 @@ function copyReferralLink() {
     alert('Referral link copied to clipboard!');
 }
 
-function submitDepositRequest() {
+async function submitDepositRequest() {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     const ref = document.getElementById('deposit-ref').value.trim();
-    const db = getDB();
+    const s = await getPlatformSettings();
     
-    if (!amount || amount < db.settings.minDeposit) {
-        alert(`Minimum deposit amount is ₦${Number(db.settings.minDeposit).toLocaleString()}.`);
+    if (!amount || amount < s.minDeposit) {
+        alert(`Minimum deposit amount is ₦${Number(s.minDeposit).toLocaleString()}.`);
         return;
     }
     if (!ref) {
@@ -641,36 +616,46 @@ function submitDepositRequest() {
         return;
     }
 
-    const newReq = {
-        id: 'DEP-' + Math.floor(100000 + Math.random() * 900000),
-        email: currentUser.email,
-        type: 'Deposit',
-        amount: amount,
-        details: `UBA Ref: ${ref}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
+    const reqId = 'DEP-' + Math.floor(100000 + Math.random() * 900000);
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    db.pendingQueue.push(newReq);
+    if (supabaseClient) {
+        await supabaseClient.from('pending_queue').insert({
+            request_id: reqId,
+            user_email: currentUser.email,
+            type: 'Deposit',
+            amount: amount,
+            details: `UBA Ref: ${ref}`
+        });
+
+        await supabaseClient.from('transactions').insert({
+            user_email: currentUser.email,
+            description: 'UBA Direct Deposit (Pending Admin)',
+            reference: ref,
+            type: 'Deposit',
+            amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+            status: 'Pending Approval'
+        });
+    }
 
     currentUser.transactions.unshift({
         desc: 'UBA Direct Deposit (Pending Admin)',
         ref: ref,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        date: dateStr,
         type: 'Deposit',
         amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         status: 'Pending Approval'
     });
 
-    saveDB(db);
-    persistUserData();
+    await persistUserData();
     closeModal('modal-deposit');
     alert(`Deposit submitted successfully! Awaiting Admin approval.`);
 }
 
-function calculateWithdrawFee() {
-    const db = getDB();
+async function calculateWithdrawFee() {
+    const s = await getPlatformSettings();
     const gross = parseFloat(document.getElementById('withdraw-gross').value) || 0;
-    const feePct = db.settings.withdrawalFeePercent || 15;
+    const feePct = s.withdrawalFeePercent || 15;
     const fee = gross * (feePct / 100);
     const net = gross - fee;
     document.getElementById('w-gross-display').innerText = '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 });
@@ -678,11 +663,11 @@ function calculateWithdrawFee() {
     document.getElementById('w-net-display').innerText = '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 });
 }
 
-function submitWithdrawRequest() {
-    const db = getDB();
+async function submitWithdrawRequest() {
+    const s = await getPlatformSettings();
     const gross = parseFloat(document.getElementById('withdraw-gross').value);
-    if (!gross || gross < db.settings.minWithdrawal) {
-        alert(`Minimum withdrawal amount is ₦${Number(db.settings.minWithdrawal).toLocaleString()}.`);
+    if (!gross || gross < s.minWithdrawal) {
+        alert(`Minimum withdrawal amount is ₦${Number(s.minWithdrawal).toLocaleString()}.`);
         return;
     }
     if (gross > currentUser.balance) {
@@ -690,41 +675,50 @@ function submitWithdrawRequest() {
         return;
     }
 
-    const feePct = db.settings.withdrawalFeePercent || 15;
+    const feePct = s.withdrawalFeePercent || 15;
     const fee = gross * (feePct / 100);
     const net = gross - fee;
 
     currentUser.balance -= gross;
+    const reqId = 'WIT-' + Math.floor(100000 + Math.random() * 900000);
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    const newReq = {
-        id: 'WIT-' + Math.floor(100000 + Math.random() * 900000),
-        email: currentUser.email,
-        type: 'Withdrawal',
-        amount: gross,
-        netAmount: net,
-        fee: fee,
-        details: `Bank: ${currentUser.bank} (${currentUser.accountNumber}) · Net: ₦${net.toLocaleString()}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
+    if (supabaseClient) {
+        await supabaseClient.from('pending_queue').insert({
+            request_id: reqId,
+            user_email: currentUser.email,
+            type: 'Withdrawal',
+            amount: gross,
+            net_amount: net,
+            fee: fee,
+            details: `Bank: ${currentUser.bank} (${currentUser.accountNumber}) · Net: ₦${net.toLocaleString()}`
+        });
 
-    db.pendingQueue.push(newReq);
+        await supabaseClient.from('transactions').insert({
+            user_email: currentUser.email,
+            description: `Withdrawal to ${currentUser.bank} (${currentUser.accountNumber}) (Pending)`,
+            reference: reqId,
+            type: 'Withdrawal',
+            amount: '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+            status: `Pending Approval (${feePct}% Fee)`
+        });
+    }
 
     currentUser.transactions.unshift({
         desc: `Withdrawal to ${currentUser.bank} (${currentUser.accountNumber}) (Pending)`,
-        ref: 'KDV-WIT-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        ref: reqId,
+        date: dateStr,
         type: 'Withdrawal',
         amount: '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         status: `Pending Approval (${feePct}% Fee)`
     });
 
-    saveDB(db);
-    persistUserData();
+    await persistUserData();
     closeModal('modal-withdraw');
-    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your UBA account upon Admin approval (${feePct}% fee applied).`);
+    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your bank upon Admin approval.`);
 }
 
-function executeInvestment() {
+async function executeInvestment() {
     const amount = parseFloat(document.getElementById('invest-amount').value);
     if (!selectedPlanForInvest) return;
     if (!amount || amount < selectedPlanForInvest.minAmount) {
@@ -748,91 +742,77 @@ function executeInvestment() {
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
+    const txDesc = `Investment: ${selectedPlanForInvest.name}`;
+    const txRef = 'KDV-INV-' + Math.floor(100000 + Math.random() * 900000);
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
     currentUser.transactions.unshift({
-        desc: `Investment: ${selectedPlanForInvest.name}`,
-        ref: 'KDV-INV-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        desc: txDesc,
+        ref: txRef,
+        date: dateStr,
         type: 'Investment',
         amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         status: 'Active (10% Daily Auto Every 24h)'
     });
 
-    if (!currentUser.hasActivatedInvestment) {
-        currentUser.hasActivatedInvestment = true;
-        distributeReferralCommissions(amount);
+    if (supabaseClient) {
+        await supabaseClient.from('investments').insert({
+            user_email: currentUser.email,
+            plan_name: selectedPlanForInvest.name,
+            amount: amount,
+            next_yield_due: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        await supabaseClient.from('transactions').insert({
+            user_email: currentUser.email,
+            description: txDesc,
+            reference: txRef,
+            type: 'Investment',
+            amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+            status: 'Active'
+        });
     }
 
-    persistUserData();
+    if (!currentUser.hasActivatedInvestment) {
+        currentUser.hasActivatedInvestment = true;
+        await distributeReferralCommissions(amount);
+    }
+
+    await persistUserData();
     closeModal('modal-invest');
     alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name}! First 10% daily yield will drop in exactly 24 hours.`);
 }
 
-function distributeReferralCommissions(investAmount) {
-    const db = getDB();
-    let currentUplineCode = currentUser.uplineRef;
+async function distributeReferralCommissions(investAmount) {
+    if (!currentUser.uplineRef || !supabaseClient) return;
+    const { data: uplineUser } = await supabaseClient.from('profiles').select('*').eq('ref_code', currentUser.uplineRef).single();
 
-    if (currentUplineCode) {
-        let l1UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === currentUplineCode);
-        if (l1UserEmail && l1UserEmail !== currentUser.email) {
-            let comm1 = investAmount * 0.10;
-            db.users[l1UserEmail].balance += comm1;
-            db.users[l1UserEmail].transactions.unshift({
-                desc: `Referral Commission (Level 1 - 10% from ${currentUser.name})`,
-                ref: 'REF-L1-' + Math.floor(1000 + Math.random() * 9000),
-                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                type: 'Commission',
-                amount: '₦' + comm1.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                status: 'Success'
-            });
+    if (uplineUser && uplineUser.email !== currentUser.email) {
+        let comm1 = investAmount * 0.10;
+        let newBalance = parseFloat(uplineUser.balance) + comm1;
 
-            let l2Code = db.users[l1UserEmail].uplineRef;
-            if (l2Code) {
-                let l2UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l2Code);
-                if (l2UserEmail && l2UserEmail !== currentUser.email) {
-                    let comm2 = investAmount * 0.03;
-                    db.users[l2UserEmail].balance += comm2;
-                    db.users[l2UserEmail].transactions.unshift({
-                        desc: `Referral Commission (Level 2 - 3% from ${currentUser.name})`,
-                        ref: 'REF-L2-' + Math.floor(1000 + Math.random() * 9000),
-                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        type: 'Commission',
-                        amount: '₦' + comm2.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                        status: 'Success'
-                    });
-
-                    let l3Code = db.users[l2UserEmail].uplineRef;
-                    if (l3Code) {
-                        let l3UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l3Code);
-                        if (l3UserEmail && l3UserEmail !== currentUser.email) {
-                            let comm3 = investAmount * 0.01;
-                            db.users[l3UserEmail].balance += comm3;
-                            db.users[l3UserEmail].transactions.unshift({
-                                desc: `Referral Commission (Level 3 - 1% from ${currentUser.name})`,
-                                ref: 'REF-L3-' + Math.floor(1000 + Math.random() * 9000),
-                                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                                type: 'Commission',
-                                amount: '₦' + comm3.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                                status: 'Success'
-                            });
-                        }
-                    }
-                }
-            }
-        }
+        await supabaseClient.from('profiles').update({ balance: newBalance }).eq('email', uplineUser.email);
+        await supabaseClient.from('transactions').insert({
+            user_email: uplineUser.email,
+            description: `Referral Commission (Level 1 - 10% from ${currentUser.name})`,
+            reference: 'REF-L1-' + Math.floor(1000 + Math.random() * 9000),
+            type: 'Commission',
+            amount: '₦' + comm1.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+            status: 'Success'
+        });
     }
-    saveDB(db);
 }
 
-function executeCreateGoal() {
+async function executeCreateGoal() {
     const name = document.getElementById('goal-name-input').value;
     const target = parseFloat(document.getElementById('goal-target-input').value);
     if (!name || !target) return alert('Fill in all fields');
     currentUser.goals.push({ name, target, current: 0 });
-    persistUserData();
+    await persistUserData();
     closeModal('modal-goal');
 }
 
-function submitSupportTicket() {
+async function submitSupportTicket() {
     const category = document.getElementById('support-category').value;
     const msg = document.getElementById('support-msg').value.trim();
     if (!msg) return alert('Enter your support message');
@@ -847,11 +827,15 @@ function submitSupportTicket() {
     };
 
     currentUser.tickets.unshift(ticket);
-    const db = getDB();
-    db.globalTickets.unshift(ticket);
-    saveDB(db);
-    persistUserData();
+    if (supabaseClient) {
+        await supabaseClient.from('support_tickets').insert({
+            user_email: currentUser.email,
+            category: category,
+            message: msg
+        });
+    }
 
+    await persistUserData();
     document.getElementById('support-msg').value = '';
     alert('Support ticket submitted to Admin successfully!');
 }
@@ -862,207 +846,202 @@ function togglePrivacy() {
     updateUserUI();
 }
 
-function loadAdminDashboard() {
-    if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') return;
+async function loadAdminDashboard() {
+    if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com' || !supabaseClient) return;
 
-    const db = getDB();
-    document.getElementById('count-pending-approvals').innerText = db.pendingQueue.length;
-    document.getElementById('count-total-users').innerText = Object.keys(db.users).length;
-    document.getElementById('count-support-tickets').innerText = db.globalTickets.length;
+    const { data: usersData } = await supabaseClient.from('profiles').select('*');
+    const { data: queueData } = await supabaseClient.from('pending_queue').select('*');
+    const { data: ticketsData } = await supabaseClient.from('support_tickets').select('*');
+    const settings = await getPlatformSettings();
 
-    document.getElementById('setting-min-dep').value = db.settings.minDeposit;
-    document.getElementById('setting-min-wit').value = db.settings.minWithdrawal;
-    document.getElementById('setting-wit-fee').value = db.settings.withdrawalFeePercent;
-    document.getElementById('setting-uba-num').value = db.settings.ubaAccountNumber;
-    document.getElementById('setting-uba-name').value = db.settings.ubaAccountName;
+    document.getElementById('count-pending-approvals').innerText = queueData ? queueData.length : 0;
+    document.getElementById('count-total-users').innerText = usersData ? usersData.length : 0;
+    document.getElementById('count-support-tickets').innerText = ticketsData ? ticketsData.length : 0;
+
+    document.getElementById('setting-min-dep').value = settings.minDeposit;
+    document.getElementById('setting-min-wit').value = settings.minWithdrawal;
+    document.getElementById('setting-wit-fee').value = settings.withdrawalFeePercent;
+    document.getElementById('setting-uba-num').value = settings.ubaAccountNumber;
+    document.getElementById('setting-uba-name').value = settings.ubaAccountName;
 
     const appTable = document.getElementById('admin-approvals-table');
-    if (db.pendingQueue.length === 0) {
+    if (!queueData || queueData.length === 0) {
         appTable.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No pending requests in queue.</td></tr>`;
     } else {
-        appTable.innerHTML = db.pendingQueue.map((item, index) => `
+        appTable.innerHTML = queueData.map((item) => `
             <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-bold text-slate-900">${item.email}</td>
+                <td class="p-4 font-bold text-slate-900">${item.user_email}</td>
                 <td class="p-4"><span class="px-2.5 py-1 ${item.type === 'Deposit' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${item.type}</span></td>
                 <td class="p-4 font-bold text-slate-900">₦${Number(item.amount).toLocaleString()}</td>
                 <td class="p-4 text-xs text-slate-600">${item.details}</td>
-                <td class="p-4 text-xs text-slate-500">${item.date}</td>
+                <td class="p-4 text-xs text-slate-500">${new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                 <td class="p-4 text-right space-x-2">
-                    <button onclick="adminApprove(${index})" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition">Approve</button>
-                    <button onclick="adminReject(${index})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">Reject</button>
+                    <button onclick="adminApprove('${item.request_id}')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition">Approve</button>
+                    <button onclick="adminReject('${item.request_id}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">Reject</button>
                 </td>
             </tr>
         `).join('');
     }
 
     const usersTable = document.getElementById('admin-users-table');
-    const userKeys = Object.keys(db.users);
-    if (userKeys.length === 0) {
+    if (!usersData || usersData.length === 0) {
         usersTable.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No registered users found.</td></tr>`;
     } else {
-        usersTable.innerHTML = userKeys.map(email => {
-            const u = db.users[email];
-            return `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4">
-                        <div class="font-bold text-slate-900">${u.name}</div>
-                        <div class="text-xs text-slate-500">${u.email} (${u.accountNumber ? u.bank + ' - ' + u.accountNumber : 'No Bank'})</div>
-                    </td>
-                    <td class="p-4 text-xs">
-                        <div class="font-mono font-bold text-emerald-800">${u.refCode || 'N/A'}</div>
-                        <div class="text-slate-500">Upline: ${u.uplineRef || 'None'}</div>
-                    </td>
-                    <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
-                    <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
-                    <td class="p-4 font-bold text-emerald-700">₦${Number(u.dailyYield).toLocaleString()}</td>
-                    <td class="p-4 text-right space-x-2">
-                        <button onclick="adminCreditUser('${email}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition">+ Credit</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        usersTable.innerHTML = usersData.map(u => `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-4">
+                    <div class="font-bold text-slate-900">${u.name}</div>
+                    <div class="text-xs text-slate-500">${u.email} (${u.account_number ? u.bank + ' - ' + u.account_number : 'No Bank'})</div>
+                </td>
+                <td class="p-4 text-xs">
+                    <div class="font-mono font-bold text-emerald-800">${u.ref_code || 'N/A'}</div>
+                    <div class="text-slate-500">Upline: ${u.upline_ref || 'None'}</div>
+                </td>
+                <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
+                <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
+                <td class="p-4 font-bold text-emerald-700">₦${Number(u.daily_yield).toLocaleString()}</td>
+                <td class="p-4 text-right space-x-2">
+                    <button onclick="adminCreditUser('${u.email}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition">+ Credit</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     const ticketsList = document.getElementById('admin-tickets-list');
-    if (!db.globalTickets || db.globalTickets.length === 0) {
+    if (!ticketsData || ticketsData.length === 0) {
         ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted.</div>`;
     } else {
-        ticketsList.innerHTML = db.globalTickets.map((t, idx) => `
+        ticketsList.innerHTML = ticketsData.map((t) => `
             <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
                 <div class="flex justify-between text-xs font-bold text-slate-700">
-                    <span>User: ${t.email} (${t.category})</span>
-                    <span class="text-slate-400">${t.date}</span>
+                    <span>User: ${t.user_email} (${t.category})</span>
+                    <span class="text-slate-400">${new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
-                <p class="text-xs text-slate-800"><strong>Query:</strong> ${t.msg}</p>
+                <p class="text-xs text-slate-800"><strong>Query:</strong> ${t.message}</p>
                 <div class="flex space-x-2 pt-2">
-                    <input type="text" id="admin-reply-${idx}" placeholder="Type admin response..." value="${t.reply || ''}" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
-                    <button onclick="adminSendReply(${idx})" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition">Send Reply</button>
+                    <input type="text" id="admin-reply-${t.id}" placeholder="Type admin response..." value="${t.reply || ''}" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+                    <button onclick="adminSendReply('${t.id}')" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition">Send Reply</button>
                 </div>
             </div>
         `).join('');
     }
 }
 
-function saveAdminSettings() {
-    const db = getDB();
-    db.settings.minDeposit = parseFloat(document.getElementById('setting-min-dep').value) || 10000;
-    db.settings.minWithdrawal = parseFloat(document.getElementById('setting-min-wit').value) || 1000;
-    db.settings.withdrawalFeePercent = parseFloat(document.getElementById('setting-wit-fee').value) || 15;
-    db.settings.ubaAccountNumber = document.getElementById('setting-uba-num').value.trim() || '2231165369';
-    db.settings.ubaAccountName = document.getElementById('setting-uba-name').value.trim() || 'AKINSANYA TIMOTHY OLAKUNLE';
+async function saveAdminSettings() {
+    if (!supabaseClient) return;
+    const minDep = document.getElementById('setting-min-dep').value;
+    const minWit = document.getElementById('setting-min-wit').value;
+    const fee = document.getElementById('setting-wit-fee').value;
+    const ubaNum = document.getElementById('setting-uba-num').value;
+    const ubaName = document.getElementById('setting-uba-name').value;
 
-    saveDB(db);
+    await supabaseClient.from('platform_settings').upsert([
+        { key: 'min_deposit', value: minDep },
+        { key: 'min_withdrawal', value: minWit },
+        { key: 'withdrawal_fee_percent', value: fee },
+        { key: 'uba_account_number', value: ubaNum },
+        { key: 'uba_account_name', value: ubaName }
+    ]);
+
     updateGlobalUIStrings();
     alert('Platform settings saved successfully and applied platform-wide!');
 }
 
-function adminApprove(index) {
-    const db = getDB();
-    const item = db.pendingQueue.splice(index, 1)[0];
-    const targetUser = db.users[item.email];
+async function adminApprove(requestId) {
+    if (!supabaseClient) return;
+    const { data: item } = await supabaseClient.from('pending_queue').select('*').eq('request_id', requestId).single();
+    if (!item) return;
+
+    const { data: targetUser } = await supabaseClient.from('profiles').select('*').eq('email', item.user_email).single();
 
     if (targetUser) {
         if (item.type === 'Deposit') {
-            let finalCredit = item.amount;
+            let finalCredit = parseFloat(item.amount);
             let bonusAwarded = 0;
 
-            if (!targetUser.hasFunded) {
-                targetUser.hasFunded = true;
-                bonusAwarded = item.amount >= 50000 ? 2000 : 1000;
+            if (!targetUser.has_funded) {
+                bonusAwarded = finalCredit >= 50000 ? 2000 : 1000;
                 finalCredit += bonusAwarded;
             }
 
-            targetUser.balance += finalCredit;
-            targetUser.transactions.unshift({
-                desc: `UBA Direct Deposit ${bonusAwarded > 0 ? `(+₦${bonusAwarded.toLocaleString()} Bonus)` : ''} (Approved)`,
-                ref: item.id,
-                date: item.date,
+            let newBalance = parseFloat(targetUser.balance) + finalCredit;
+            await supabaseClient.from('profiles').update({ balance: newBalance, has_funded: true }).eq('email', item.user_email);
+            
+            await supabaseClient.from('transactions').insert({
+                user_email: item.user_email,
+                description: `UBA Direct Deposit ${bonusAwarded > 0 ? `(+₦${bonusAwarded.toLocaleString()} Bonus)` : ''} (Approved)`,
+                reference: requestId,
                 type: 'Deposit',
                 amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
                 status: 'Success'
             });
         } else if (item.type === 'Withdrawal') {
-            targetUser.transactions.unshift({
-                desc: `Withdrawal Approved (Fee: ₦${Number(item.fee).toLocaleString()})`,
-                ref: item.id,
-                date: item.date,
+            await supabaseClient.from('transactions').insert({
+                user_email: item.user_email,
+                description: `Withdrawal Approved (Fee: ₦${Number(item.fee).toLocaleString()})`,
+                reference: requestId,
                 type: 'Withdrawal',
                 amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                status: `Paid Net ₦${Number(item.netAmount).toLocaleString()}`
+                status: `Paid Net ₦${Number(item.net_amount).toLocaleString()}`
             });
         }
     }
 
-    saveDB(db);
+    await supabaseClient.from('pending_queue').delete().eq('request_id', requestId);
     loadAdminDashboard();
-    alert(`Successfully approved ${item.type} of ₦${Number(item.amount).toLocaleString()} for ${item.email}`);
+    alert(`Successfully approved ${item.type} of ₦${Number(item.amount).toLocaleString()} for ${item.user_email}`);
 }
 
-function adminReject(index) {
-    const db = getDB();
-    const item = db.pendingQueue.splice(index, 1)[0];
-    const targetUser = db.users[item.email];
+async function adminReject(requestId) {
+    if (!supabaseClient) return;
+    const { data: item } = await supabaseClient.from('pending_queue').select('*').eq('request_id', requestId).single();
+    if (!item) return;
 
-    if (targetUser) {
-        if (item.type === 'Withdrawal') {
-            targetUser.balance += item.amount;
+    if (item.type === 'Withdrawal') {
+        const { data: targetUser } = await supabaseClient.from('profiles').select('*').eq('email', item.user_email).single();
+        if (targetUser) {
+            let restoredBalance = parseFloat(targetUser.balance) + parseFloat(item.amount);
+            await supabaseClient.from('profiles').update({ balance: restoredBalance }).eq('email', item.user_email);
         }
-        targetUser.transactions.unshift({
-            desc: `${item.type} Request Failed / Rejected by Admin`,
-            ref: item.id,
-            date: item.date,
-            type: item.type,
-            amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-            status: 'Failed / Rejected'
-        });
     }
 
-    saveDB(db);
+    await supabaseClient.from('pending_queue').delete().eq('request_id', requestId);
     loadAdminDashboard();
     alert(`Rejected ${item.type} request.`);
 }
 
-function adminCreditUser(email) {
+async function adminCreditUser(email) {
     const amtStr = prompt(`Enter amount in NGN to credit ${email}:`, '10000');
     const amt = parseFloat(amtStr);
-    if (!amt || amt <= 0) return;
+    if (!amt || amt <= 0 || !supabaseClient) return;
 
-    const db = getDB();
-    if (db.users[email]) {
-        db.users[email].balance += amt;
-        db.users[email].transactions.unshift({
-            desc: 'Admin Manual Credit',
-            ref: 'KDV-ADM-' + Math.floor(1000 + Math.random() * 9000),
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    const { data: targetUser } = await supabaseClient.from('profiles').select('*').eq('email', email).single();
+    if (targetUser) {
+        let newBalance = parseFloat(targetUser.balance) + amt;
+        await supabaseClient.from('profiles').update({ balance: newBalance }).eq('email', email);
+        await supabaseClient.from('transactions').insert({
+            user_email: email,
+            description: 'Admin Manual Credit',
+            reference: 'KDV-ADM-' + Math.floor(1000 + Math.random() * 9000),
             type: 'Credit',
             amount: '₦' + amt.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
             status: 'Success'
         });
-        saveDB(db);
         loadAdminDashboard();
         alert(`Successfully credited ₦${amt.toLocaleString()} to ${email}`);
     }
 }
 
-function adminSendReply(idx) {
-    const replyText = document.getElementById(`admin-reply-${idx}`).value.trim();
-    if (!replyText) return alert('Enter a reply message');
+async function adminSendReply(ticketId) {
+    const replyText = document.getElementById(`admin-reply-${ticketId}`).value.trim();
+    if (!replyText || !supabaseClient) return alert('Enter a reply message');
 
-    const db = getDB();
-    const ticket = db.globalTickets[idx];
-    ticket.reply = replyText;
-
-    if (db.users[ticket.email]) {
-        const uTicket = db.users[ticket.email].tickets.find(t => t.id === ticket.id || t.msg === ticket.msg);
-        if (uTicket) uTicket.reply = replyText;
-    }
-
-    saveDB(db);
+    await supabaseClient.from('support_tickets').update({ reply: replyText }).eq('id', ticketId);
     loadAdminDashboard();
     alert('Support reply sent successfully.');
 }
 
-function calculateCompound() {
+async function calculateCompound() {
     const p = parseFloat(document.getElementById('calc-principal').value) || 0;
     const days = parseInt(document.getElementById('calc-days').value) || 24;
     document.getElementById('days-display').innerText = `${days} Days`;
