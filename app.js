@@ -1,14 +1,8 @@
-// Supabase Project Constants
-const SUPABASE_URL = "https://hbleacgjtfkvjdzchjov.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_jvldVxF-_wdvvq_UHYUEaw_sVyF-GsZ";
-
-// Global Platform State
 let currentUser = null;
 let isAdmin = false;
 let selectedProductForInvest = { name: '', rate: 10.0 };
 let privacyMask = false;
 
-// Central Database in LocalStorage mimicking Supabase backend tables
 function getDB() {
     let db = localStorage.getItem('kudiva_master_db');
     if (!db) {
@@ -22,11 +16,12 @@ function getDB() {
                     balance: 150000.00,
                     invested: 50000.00,
                     dailyYield: 12500.00,
+                    hasFunded: true,
                     investments: [
                         { name: 'UBA Treasury Prime Growth', rate: 10.0, amount: 50000.00, date: '14 Nov 2026' }
                     ],
                     transactions: [
-                        { desc: 'UBA Direct Deposit', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
+                        { desc: 'UBA Direct Deposit (+ Bonus)', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
                     ],
                     goals: [
                         { name: 'UBA Emergency Reserve', target: 500000, current: 50000 }
@@ -50,19 +45,16 @@ function saveDB(db) {
     localStorage.setItem('kudiva_master_db', JSON.stringify(db));
 }
 
-// Initialization on load
 window.addEventListener('DOMContentLoaded', () => {
     const activeSession = localStorage.getItem('kudiva_active_session');
     if (activeSession) {
         const session = JSON.parse(activeSession);
         currentUser = session.user;
-        // Strict Admin verification check
         isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
         unlockApp();
     }
 });
 
-// Auth Tabs
 function switchAuthTab(tab) {
     document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
     document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
@@ -105,6 +97,7 @@ function handleRegister(e) {
         balance: 0.00,
         invested: 0.00,
         dailyYield: 0.00,
+        hasFunded: false,
         investments: [],
         transactions: [],
         goals: [{ name: 'Initial Savings Target', target: 200000, current: 0 }],
@@ -122,7 +115,6 @@ function completeLogin() {
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('app-wrapper').classList.remove('opacity-40', 'pointer-events-none');
     
-    // Toggle Admin Navigation Button Visibility based strictly on email
     const adminNav = document.getElementById('admin-nav-container');
     if (currentUser.email.toLowerCase() === 'omoopeola1@gmail.com') {
         adminNav.classList.remove('hidden');
@@ -154,7 +146,13 @@ function unlockApp() {
     loadUserData();
 }
 
-// Data Sync for User
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('user-sidebar');
+    const backdrop = document.getElementById('mobile-sidebar-backdrop');
+    sidebar.classList.toggle('-translate-x-full');
+    backdrop.classList.toggle('hidden');
+}
+
 function loadUserData() {
     const db = getDB();
     if (!currentUser || !db.users[currentUser.email]) return;
@@ -190,7 +188,6 @@ function updateUserUI() {
     const pendingCount = db.pendingQueue.filter(q => q.email === currentUser.email).length;
     document.getElementById('stat-pending-count').innerText = pendingCount;
 
-    // Transactions Table
     const tbody = document.getElementById('transactions-table-body');
     if (currentUser.transactions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No transactions recorded yet.</td></tr>`;
@@ -207,7 +204,6 @@ function updateUserUI() {
         `).join('');
     }
 
-    // Portfolio Holdings List
     const holdingsList = document.getElementById('portfolio-holdings-list');
     if (currentUser.investments.length === 0) {
         holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore products to earn 10% daily.</div>`;
@@ -226,7 +222,6 @@ function updateUserUI() {
         `).join('');
     }
 
-    // Goals List
     const goalsList = document.getElementById('goals-list');
     goalsList.innerHTML = currentUser.goals.map(g => {
         const pct = Math.min(100, Math.round((g.current / g.target) * 100));
@@ -247,7 +242,6 @@ function updateUserUI() {
         `;
     }).join('');
 
-    // Support Tickets List
     const ticketsList = document.getElementById('user-tickets-list');
     if (!currentUser.tickets || currentUser.tickets.length === 0) {
         ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted yet.</div>`;
@@ -265,9 +259,7 @@ function updateUserUI() {
     }
 }
 
-// Navigation
 function switchTab(tabId) {
-    // If switching to admin-dashboard, double-verify email
     if (tabId === 'admin-dashboard') {
         if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') {
             alert('Access Denied. Admin Dashboard is restricted to omoopeola1@gmail.com.');
@@ -305,21 +297,26 @@ function switchTab(tabId) {
         'admin-dashboard': 'Admin Control Center'
     };
     document.getElementById('current-breadcrumb').innerText = titles[tabId];
+
+    if (window.innerWidth < 768) {
+        const sidebar = document.getElementById('user-sidebar');
+        const backdrop = document.getElementById('mobile-sidebar-backdrop');
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+    }
 }
 
-// Admin Sub-tabs
 function switchAdminTab(subId) {
     document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
     document.getElementById('admin-sub-' + subId).classList.add('active');
 
-    document.getElementById('adm-btn-approvals').className = subId === 'approvals' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition';
-    document.getElementById('adm-btn-users').className = subId === 'users' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition';
-    document.getElementById('adm-btn-tickets').className = subId === 'tickets' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition';
+    document.getElementById('adm-btn-approvals').className = subId === 'approvals' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
+    document.getElementById('adm-btn-users').className = subId === 'users' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
+    document.getElementById('adm-btn-tickets').className = subId === 'tickets' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
 
     loadAdminDashboard();
 }
 
-// Modals
 function openDepositModal() { document.getElementById('modal-deposit').classList.remove('hidden'); }
 function openWithdrawModal() { document.getElementById('modal-withdraw').classList.add('hidden'); calculateWithdrawFee(); document.getElementById('modal-withdraw').classList.remove('hidden'); }
 function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
@@ -331,12 +328,21 @@ function openInvestModal(productName, rate) {
     document.getElementById('modal-invest').classList.remove('hidden');
 }
 
-// Financial & Approval Workflows
+function copyUBAAccount() {
+    navigator.clipboard.writeText('2231165369');
+    alert('UBA Account Number (2231165369 - AKINSANYA TIMOTHY OLAKUNLE) copied to clipboard!');
+}
+
 function submitDepositRequest() {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     const ref = document.getElementById('deposit-ref').value.trim();
-    if (!amount || amount <= 0 || !ref) {
-        alert('Please enter a valid amount and UBA reference number.');
+    
+    if (!amount || amount < 10000) {
+        alert('Minimum deposit amount is ₦10,000.');
+        return;
+    }
+    if (!ref) {
+        alert('Please enter your UBA transfer reference or teller number.');
         return;
     }
 
@@ -346,7 +352,7 @@ function submitDepositRequest() {
         email: currentUser.email,
         type: 'Deposit',
         amount: amount,
-        details: `UBA Ref: ${ref}`,
+        details: `UBA Ref: ${ref} (${!currentUser.hasFunded ? 'First Deposit Bonus Eligible' : 'Standard Deposit'})`,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
@@ -362,7 +368,7 @@ function submitDepositRequest() {
     saveDB(db);
     persistUserData();
     closeModal('modal-deposit');
-    alert('Deposit submitted successfully! Awaiting Admin approval.');
+    alert('Deposit submitted successfully! Awaiting Admin approval (min ₦10,000 deposit).');
 }
 
 function calculateWithdrawFee() {
@@ -376,8 +382,14 @@ function calculateWithdrawFee() {
 
 function submitWithdrawRequest() {
     const gross = parseFloat(document.getElementById('withdraw-gross').value);
-    if (!gross || gross <= 0) return alert('Enter a valid amount');
-    if (gross > currentUser.balance) return alert('Insufficient available balance in wallet');
+    if (!gross || gross < 1000) {
+        alert('Minimum withdrawal amount is ₦1,000.');
+        return;
+    }
+    if (gross > currentUser.balance) {
+        alert('Insufficient available balance in wallet.');
+        return;
+    }
 
     const fee = gross * 0.15;
     const net = gross - fee;
@@ -511,11 +523,10 @@ function togglePrivacy() {
 }
 
 function copyReferralCode() {
-    navigator.clipboard.writeText('KUDIVA-LEKKXY26');
-    alert('Referral code copied to clipboard!');
+    navigator.clipboard.writeText('KUDIVA-BONUS2026');
+    alert('Recharge bonus code copied to clipboard!');
 }
 
-// ================= ADMIN DASHBOARD LOGIC =================
 function loadAdminDashboard() {
     if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') return;
 
@@ -598,9 +609,24 @@ function adminApprove(index) {
 
     if (targetUser) {
         if (item.type === 'Deposit') {
-            targetUser.balance += item.amount;
+            let finalCredit = item.amount;
+            let bonusAwarded = 0;
+
+            // Check first-time funding bonus
+            if (!targetUser.hasFunded) {
+                targetUser.hasFunded = true;
+                // If amount is equivalent to Plan 2 upward (e.g. >= 50,000 or custom threshold), grant ₦2,000 bonus, else ₦1,000
+                if (item.amount >= 50000) {
+                    bonusAwarded = 2000;
+                } else {
+                    bonusAwarded = 1000;
+                }
+                finalCredit += bonusAwarded;
+            }
+
+            targetUser.balance += finalCredit;
             targetUser.transactions.unshift({
-                desc: 'UBA Direct Deposit (Approved)',
+                desc: `UBA Direct Deposit ${bonusAwarded > 0 ? `(+₦${bonusAwarded.toLocaleString()} Bonus)` : ''} (Approved)`,
                 ref: item.id,
                 date: item.date,
                 type: 'Deposit',
@@ -649,7 +675,7 @@ function adminReject(index) {
 }
 
 function adminCreditUser(email) {
-    const amtStr = prompt(`Enter amount in NGN to credit ${email}:`, '50000');
+    const amtStr = prompt(`Enter amount in NGN to credit ${email}:`, '10000');
     const amt = parseFloat(amtStr);
     if (!amt || amt <= 0) return;
 
