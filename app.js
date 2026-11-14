@@ -1,931 +1,677 @@
-let currentUser = null;
-let isAdmin = false;
-let selectedPlanForInvest = null;
-let privacyMask = false;
-
-// 10 Distinct Investment Plans (Starting from ₦10,000 upward with 24-day cycles)
-const INVESTMENT_PLANS = [
-    {
-        id: 1,
-        name: "UBA Micro Treasury Alpha",
-        minAmount: 10000,
-        image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 1 (Entry Tier)"
-    },
-    {
-        id: 2,
-        name: "Nigeria Sovereign Growth Yield",
-        minAmount: 25000,
-        image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 2 (Eligible for ₦2k Bonus)"
-    },
-    {
-        id: 3,
-        name: "Lagos Commercial Real Estate Syndicate",
-        minAmount: 50000,
-        image: "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 3 (Balanced)"
-    },
-    {
-        id: 4,
-        name: "Pan-African Fintech Venture Fund",
-        minAmount: 100000,
-        image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 4 (Growth)"
-    },
-    {
-        id: 5,
-        name: "West Africa Agro-Export Trust",
-        minAmount: 250000,
-        image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 5 (Commodities)"
-    },
-    {
-        id: 6,
-        name: "Abuja Prime Infrastructure Bond",
-        minAmount: 500000,
-        image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 6 (Infrastructure)"
-    },
-    {
-        id: 7,
-        name: "Kudiva Dollar-Hedge Bluechip Pool",
-        minAmount: 1000000,
-        image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 7 (High Yield)"
-    },
-    {
-        id: 8,
-        name: "Continental Energy & Power Fund",
-        minAmount: 2500000,
-        image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 8 (Energy)"
-    },
-    {
-        id: 9,
-        name: "Executive Private Wealth Syndicate",
-        minAmount: 5000000,
-        image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 9 (Executive)"
-    },
-    {
-        id: 10,
-        name: "Sovereign Apex Elite Portfolio",
-        minAmount: 10000000,
-        image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80",
-        tag: "Plan 10 (Apex Tier)"
-    }
-];
-
-function getDB() {
-    let db = localStorage.getItem('kudiva_master_db');
-    if (!db) {
-        db = {
-            users: {
-                'omoopeola1@gmail.com': {
-                    name: 'Ola Omoope',
-                    email: 'omoopeola1@gmail.com',
-                    bank: 'UBA Nigeria',
-                    accountNumber: '2231165369',
-                    refCode: 'KUDIVA-ADMIN',
-                    uplineRef: '',
-                    balance: 150000.00,
-                    invested: 50000.00,
-                    dailyYield: 12500.00,
-                    hasFunded: true,
-                    hasActivatedInvestment: true,
-                    investments: [
-                        { name: 'UBA Micro Treasury Alpha', rate: 10.0, amount: 50000.00, cycleDays: 24, date: '14 Nov 2026' }
-                    ],
-                    transactions: [
-                        { desc: 'UBA Direct Deposit (+ Bonus)', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
-                    ],
-                    goals: [
-                        { name: 'UBA Emergency Reserve', target: 500000, current: 50000 }
-                    ],
-                    tickets: [
-                        { category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
-                    ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUDIVA — Wealth, With Clarity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kudiva: { dark: '#0d1914', sidebar: '#0b1612', card: '#13271f', emerald: '#173526', mint: '#c2e3c8' }
+                    },
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], serif: ['"Playfair Display"', 'serif'] }
                 }
-            },
-            pendingQueue: [],
-            globalTickets: [
-                { id: 1, email: 'omoopeola1@gmail.com', category: 'UBA Deposit Approval Delay', msg: 'Please confirm deposit TRF-UBA-98214.', reply: 'Verified and approved by Admin.', date: '14 Nov 2026' }
-            ]
-        };
-        localStorage.setItem('kudiva_master_db', JSON.stringify(db));
-    }
-    return JSON.parse(db);
-}
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f7faf8; color: #111827; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1612; }
+        ::-webkit-scrollbar-thumb { background: #234e38; border-radius: 3px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .admin-tab-content { display: none; }
+        .admin-tab-content.active { display: block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#f7faf8] text-slate-800 antialiased">
 
-function saveDB(db) {
-    localStorage.setItem('kudiva_master_db', JSON.stringify(db));
-}
+    <!-- AUTHENTICATION MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto">
+            <div class="bg-[#0d1914] p-6 text-white relative">
+                <div class="flex items-center space-x-2.5 mb-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-lg font-serif">K</div>
+                    <span class="text-xl font-bold tracking-wider font-serif">KUDIVA</span>
+                </div>
+                <h2 class="text-2xl font-serif font-bold">Wealth, With Clarity</h2>
+                <p class="text-emerald-200/80 text-sm mt-1">Sign in or create your account to manage your wealth.</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition">Sign In</button>
+                    <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition">Create Account</button>
+                </div>
 
-window.addEventListener('DOMContentLoaded', () => {
-    const activeSession = localStorage.getItem('kudiva_active_session');
-    if (activeSession) {
-        const session = JSON.parse(activeSession);
-        currentUser = session.user;
-        isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
-        unlockApp();
-    }
-    renderExplorePlans();
-});
-
-function switchAuthTab(tab) {
-    document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
-    document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
-    
-    document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
-    document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
-}
-
-function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const db = getDB();
-    if (!db.users[email]) {
-        alert('Account not found. Please register first.');
-        return;
-    }
-    currentUser = db.users[email];
-    isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
-    completeLogin();
-}
-
-function handleRegister(e) {
-    e.preventDefault();
-    const name = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim().toLowerCase();
-    const refCodeInput = document.getElementById('reg-refcode').value.trim().toUpperCase();
-
-    const db = getDB();
-    if (db.users[email]) {
-        alert('An account with this email already exists.');
-        return;
-    }
-
-    const generatedRef = 'KUDIVA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    db.users[email] = {
-        name,
-        email,
-        bank: 'UBA Nigeria',
-        accountNumber: '2231165369',
-        refCode: generatedRef,
-        uplineRef: refCodeInput || '',
-        balance: 0.00,
-        invested: 0.00,
-        dailyYield: 0.00,
-        hasFunded: false,
-        hasActivatedInvestment: false,
-        investments: [],
-        transactions: [],
-        goals: [{ name: 'Initial Savings Target', target: 200000, current: 0 }],
-        tickets: []
-    };
-    saveDB(db);
-
-    currentUser = db.users[email];
-    isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
-    completeLogin();
-}
-
-function completeLogin() {
-    localStorage.setItem('kudiva_active_session', JSON.stringify({ user: currentUser }));
-    document.getElementById('auth-modal').classList.add('hidden');
-    document.getElementById('app-wrapper').classList.remove('opacity-40', 'pointer-events-none');
-    
-    const adminNav = document.getElementById('admin-nav-container');
-    if (currentUser.email.toLowerCase() === 'omoopeola1@gmail.com') {
-        adminNav.classList.remove('hidden');
-    } else {
-        adminNav.classList.add('hidden');
-    }
-
-    switchTab('overview');
-    loadUserData();
-}
-
-function handleLogout() {
-    localStorage.removeItem('kudiva_active_session');
-    location.reload();
-}
-
-function unlockApp() {
-    document.getElementById('auth-modal').classList.add('hidden');
-    document.getElementById('app-wrapper').classList.remove('opacity-40', 'pointer-events-none');
-    
-    const adminNav = document.getElementById('admin-nav-container');
-    if (currentUser && currentUser.email.toLowerCase() === 'omoopeola1@gmail.com') {
-        adminNav.classList.remove('hidden');
-    } else {
-        adminNav.classList.add('hidden');
-    }
-
-    switchTab('overview');
-    loadUserData();
-}
-
-function toggleMobileSidebar() {
-    const sidebar = document.getElementById('user-sidebar');
-    const backdrop = document.getElementById('mobile-sidebar-backdrop');
-    sidebar.classList.toggle('-translate-x-full');
-    backdrop.classList.toggle('hidden');
-}
-
-function renderExplorePlans() {
-    const container = document.getElementById('plans-container');
-    if (!container) return;
-
-    container.innerHTML = INVESTMENT_PLANS.map(plan => {
-        const dailyIncome = plan.minAmount * 0.10;
-        const totalIncome24Days = dailyIncome * 24;
-
-        return `
-            <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
-                <div>
-                    <div class="h-40 overflow-hidden relative">
-                        <img src="${plan.image}" alt="${plan.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                        <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-700 text-white text-[10px] font-bold rounded-lg">${plan.tag}</span>
-                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full">10% Daily</span>
+                <!-- Login Form -->
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="omoopeola1@gmail.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
-                    <div class="p-6 space-y-3">
-                        <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
-                            <div class="flex justify-between text-slate-500"><span>Minimum Capital:</span><strong class="text-slate-900">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
-                            <div class="flex justify-between text-slate-500"><span>Daily Income (10%):</span><strong class="text-emerald-700">₦${Number(dailyIncome).toLocaleString()}</strong></div>
-                            <div class="flex justify-between text-slate-500 pt-1 border-t border-slate-200"><span>Total Return (24 Days):</span><strong class="text-slate-900 font-bold">₦${Number(totalIncome24Days).toLocaleString()}</strong></div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password / PIN</label>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-[#0d1914] text-white font-semibold rounded-xl hover:bg-emerald-950 transition shadow-lg text-sm mt-2">
+                        Sign In <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
+                        <input type="text" id="reg-name" required placeholder="e.g. Olalekan Ogunsola" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
+                        <input type="email" id="reg-email" required placeholder="e.g. user@example.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+                        <input type="password" id="reg-password" required placeholder="Create secure password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Referral Code (Auto-Filled)</label>
+                        <input type="text" id="reg-refcode" placeholder="e.g. KUDIVA-REF123" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-mono uppercase bg-emerald-50/50">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-emerald-700 text-white font-semibold rounded-xl hover:bg-emerald-800 transition shadow-lg text-sm mt-2">
+                        Create Account & Get Started <i class="fa-solid fa-wallet ml-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="flex h-screen overflow-hidden opacity-40 pointer-events-none transition duration-300 relative">
+        
+        <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
+        <!-- SIDEBAR -->
+        <aside id="user-sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-[#0b1612] text-slate-300 flex flex-col justify-between border-r border-[#173526] shrink-0 select-none transform -translate-x-full md:translate-x-0 transition duration-200">
+            <div>
+                <div class="p-6 flex items-center justify-between border-b border-[#173526]">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-xl font-serif shadow-md">K</div>
+                        <div>
+                            <h1 class="text-white font-serif font-bold text-lg tracking-wider">KUDIVA</h1>
+                            <p class="text-[10px] text-emerald-400 tracking-widest uppercase font-semibold">Wealth, With Clarity</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <div class="px-4 py-6 overflow-y-auto">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 px-3 mb-3">Your Space</p>
+                    <nav class="space-y-1.5" id="nav-menu">
+                        <button onclick="switchTab('overview')" data-tab="overview" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition bg-emerald-950 text-white shadow-sm">
+                            <i class="fa-solid fa-house w-5 text-emerald-400"></i>
+                            <span>Overview</span>
+                        </button>
+                        <button onclick="switchTab('portfolio')" data-tab="portfolio" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-briefcase w-5 text-emerald-400"></i>
+                            <span>My portfolio</span>
+                        </button>
+                        <button onclick="switchTab('explore')" data-tab="explore" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-chart-line w-5 text-emerald-400"></i>
+                            <span>Explore 10 Investment Plans</span>
+                        </button>
+                        <button onclick="switchTab('transactions')" data-tab="transactions" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-right-left w-5 text-emerald-400"></i>
+                            <span>Transactions & Approvals</span>
+                        </button>
+                        <button onclick="switchTab('planning')" data-tab="planning" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-calculator w-5 text-emerald-400"></i>
+                            <span>Financial planning</span>
+                        </button>
+                        <button onclick="switchTab('rewards')" data-tab="rewards" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-gift w-5 text-emerald-400"></i>
+                            <span>Rewards & referrals</span>
+                        </button>
+                        <button onclick="switchTab('support')" data-tab="support" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-circle-question w-5 text-emerald-400"></i>
+                            <span>Help & support</span>
+                        </button>
+                        
+                        <!-- Admin Dashboard Nav Button -->
+                        <div id="admin-nav-container" class="hidden pt-4 border-t border-emerald-900/50 mt-4">
+                            <button onclick="switchTab('admin-dashboard')" data-tab="admin-dashboard" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30">
+                                <i class="fa-solid fa-gauge-high w-5 text-amber-400"></i>
+                                <span>Admin Dashboard</span>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="p-4 m-4 rounded-2xl bg-[#13271f] border border-[#1f3f31]">
+                <div class="flex items-center space-x-2 text-emerald-400 mb-1.5">
+                    <i class="fa-solid fa-shield-check text-sm"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">UBA Vault Active</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Min deposit ₦10,000. Min withdrawal ₦1,000.
+                </p>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <header class="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="hidden sm:flex items-center space-x-2 text-sm text-slate-500 font-medium">
+                        <span id="workspace-title-label">Workspace</span>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                        <span id="current-breadcrumb" class="text-slate-900 font-semibold">Your wealth, clearly understood</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-3 pl-2">
+                        <div id="user-initials-badge" class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">OO</div>
+                        <div class="hidden md:block text-left">
+                            <div id="topbar-username" class="text-xs font-bold text-slate-900">Ola Omoope</div>
+                            <div id="topbar-bankinfo" class="text-[10px] text-slate-500">UBA • 2231165369</div>
+                        </div>
+                        <button onclick="handleLogout()" class="text-slate-400 hover:text-red-600 transition ml-2 p-1.5" title="Sign out">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto pb-20">
+                
+                <!-- 1. OVERVIEW -->
+                <div id="view-overview" class="tab-content active space-y-8 animate-in fade-in duration-200">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Your wealth, clearly understood</h2>
+                        <p class="text-slate-500 text-sm mt-1">A thoughtful view of your financial life starts here.</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl flex flex-col md:flex-row items-center justify-between">
+                        <div class="relative z-10 max-w-xl">
+                            <div class="inline-flex items-center space-x-2 bg-emerald-900/60 text-emerald-300 px-3 py-1 rounded-full text-xs font-medium mb-4 border border-emerald-700/40">
+                                <i class="fa-solid fa-sparkles text-amber-300"></i>
+                                <span>10% DAILY RETURN AUTO-YIELD ENGINE</span>
+                            </div>
+                            <h3 id="welcome-heading" class="text-2xl md:text-4xl font-serif font-bold mb-3">Welcome back, User</h3>
+                            <p class="text-emerald-100/80 text-sm leading-relaxed mb-6">
+                                Fund via UBA (Min ₦10,000) to get ₦1,000 recharge bonus (or ₦2,000 for Plan 2 upward). Choose from our 10 investment plans and earn automatically for 24 days!
+                            </p>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <button onclick="switchTab('explore')" class="px-6 py-3 bg-[#c2e3c8] text-emerald-950 font-semibold rounded-xl hover:bg-white transition text-sm flex items-center space-x-2 shadow-lg">
+                                    <span>Explore 10 Plans</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="openDepositModal()" class="px-6 py-3 bg-emerald-800 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm border border-emerald-600/50">
+                                    <i class="fa-solid fa-plus-circle mr-2"></i> Fund via UBA
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-8 md:mt-0 relative flex items-center justify-center">
+                            <div class="w-44 h-44 rounded-full bg-emerald-800/40 border border-emerald-600/30 flex items-center justify-center relative shadow-inner">
+                                <div class="w-32 h-32 rounded-full bg-emerald-700/50 flex items-center justify-center text-emerald-200 text-5xl font-serif font-bold shadow-lg">K</div>
+                                <div class="absolute -top-2 right-4 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-emerald-950 text-xs font-bold animate-pulse">10%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-emerald-900">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold shrink-0"><i class="fa-solid fa-university"></i></div>
+                            <div>
+                                <span class="font-bold">Official UBA Receiving Account: <span class="font-mono text-emerald-950">2231165369 (AKINSANYA TIMOTHY OLAKUNLE)</span></span>
+                                <p class="text-emerald-700">Min deposit: ₦10,000. First deposit gets ₦1,000 bonus (₦2,000 for Plan 2 upward).</p>
+                            </div>
+                        </div>
+                        <button onclick="copyUBAAccount()" class="px-4 py-2 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 transition shadow shrink-0">Copy UBA Details</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Portfolio value</span>
+                                <button onclick="togglePrivacy()" class="text-slate-400 hover:text-slate-700 transition"><i class="fa-regular fa-eye text-sm" id="privacy-icon"></i></button>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-portfolio-value">₦0.00</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Active investments + daily yields</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Available balance</span>
+                                <i class="fa-solid fa-wallet text-slate-400"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-available-balance">₦0.00</div>
+                            <button onclick="openDepositModal()" class="text-[11px] text-emerald-700 font-bold hover:underline mt-1 block">+ Deposit from UBA</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Accrued Auto-Yields</span>
+                                <i class="fa-solid fa-bolt text-amber-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-emerald-700" id="stat-daily-yield">₦0.00</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Ready to harvest or reinvest</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Approvals</span>
+                                <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-pending-count">0</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Deposits / Withdrawals queue</p>
                         </div>
                     </div>
                 </div>
-                <div class="p-6 pt-0">
-                    <button onclick='openInvestModal(${JSON.stringify(plan)})' class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
-                        <span>Invest Plan (${plan.tag.split(' ')[0]} ${plan.tag.split(' ')[1]})</span>
-                        <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
-                    </button>
+
+                <!-- 2. PORTFOLIO -->
+                <div id="view-portfolio" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">My portfolio</h2>
+                        <p class="text-slate-500 text-sm mt-1">View active investments and harvest your automatic daily returns.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Total portfolio value</span>
+                                <div class="text-4xl font-bold font-serif text-slate-900 mb-2" id="portfolio-total-large">₦0.00</div>
+                                <p class="text-xs text-emerald-700 font-semibold mb-6">+ 10% Daily Auto-Yield Active</p>
+                            </div>
+                            <div class="space-y-3 pt-6 border-t border-slate-100">
+                                <div class="flex space-x-3">
+                                    <button onclick="openDepositModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-800 rounded-xl font-semibold text-xs hover:bg-slate-200 transition">Deposit</button>
+                                    <button onclick="openWithdrawModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-800 rounded-xl font-semibold text-xs hover:bg-slate-200 transition">Withdraw</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2">
+                            <h4 class="font-serif font-bold text-lg text-slate-900 mb-4">Active Investments & 24-Day Yield Positions</h4>
+                            <div id="portfolio-holdings-list" class="space-y-4">
+                                <div class="text-center py-10 text-slate-400 text-sm">
+                                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                                    No active investments yet. Explore our 10 plans to earn daily for 24 days.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- 3. EXPLORE 10 INVESTMENT PLANS -->
+                <div id="view-explore" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Explore 10 Investment Plans (24-Day Cycle)</h2>
+                        <p class="text-slate-500 text-sm mt-1">Select from our 10 professional asset tiers ranging from ₦10,000 upward. Earn 10% daily automatically for 24 days.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="plans-container"></div>
+                </div>
+
+                <!-- 4. TRANSACTIONS -->
+                <div id="view-transactions" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Transactions & Approval Queue</h2>
+                        <p class="text-slate-500 text-sm mt-1">All deposits (Min ₦10,000) and withdrawals route through Admin for verification.</p>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="font-serif font-bold text-lg text-slate-900">Your Activity Ledger</h4>
+                            <div class="text-xs text-slate-500">Min deposit: ₦10,000 · Min withdrawal: ₦1,000.</div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4">Description</th>
+                                        <th class="p-4">Reference</th>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Type</th>
+                                        <th class="p-4">Amount</th>
+                                        <th class="p-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No transactions recorded yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. FINANCIAL PLANNING -->
+                <div id="view-planning" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Financial planning</h2>
+                        <p class="text-slate-500 text-sm mt-1">Calculate automatic compounding growth at 10% daily returns across 24 days.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">10% Daily Return Calculator (24 Days)</h4>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Initial Investment (₦)</label>
+                                <input type="number" id="calc-principal" value="10000" min="10000" oninput="calculateCompound()" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Holding Period (Days)</label>
+                                <input type="range" id="calc-days" min="1" max="24" value="24" oninput="calculateCompound()" class="w-full accent-emerald-600">
+                                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 Day</span><span id="days-display">24 Days</span><span>24 Days Max</span></div>
+                            </div>
+                            <div class="p-6 rounded-2xl bg-[#0d1914] text-white flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Projected Yield Value</span>
+                                    <div class="text-3xl font-serif font-bold mt-1" id="calc-result">₦0.00</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-amber-300 font-bold">Cycle Duration</span>
+                                    <div class="text-lg font-bold">24 Days</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-serif font-bold text-xl text-slate-900">Savings Targets</h4>
+                                <button onclick="openGoalModal()" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition">+ New Goal</button>
+                            </div>
+                            <div id="goals-list" class="space-y-4">
+                                <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-bold text-slate-900 text-sm">UBA Emergency Reserve</h5>
+                                        <p class="text-xs text-slate-500">Target: ₦500,000 · Current: ₦50,000</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">10%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. REWARDS & REFERRALS -->
+                <div id="view-rewards" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Rewards & referrals</h2>
+                        <p class="text-slate-500 text-sm mt-1">Multi-tier commission structure: Level 1 (10%), Level 2 (3%), Level 3 (1%).</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-8 text-white space-y-6">
+                        <div>
+                            <h3 class="text-2xl font-serif font-bold mb-2">Your Referral Link</h3>
+                            <p class="text-emerald-200 text-sm mb-4">Share this direct link. When anyone registers using it, their referral code auto-fills instantly!</p>
+                            <div class="flex items-center space-x-3 bg-emerald-950/80 p-4 rounded-2xl border border-emerald-700/50 max-w-xl">
+                                <span id="referral-link-display" class="font-mono text-sm font-bold text-emerald-300 truncate flex-1">https://kudiva.vercel.app/?ref=KUDIVA-LEKKXY26</span>
+                                <button onclick="copyReferralLink()" class="px-4 py-2 bg-[#c2e3c8] text-emerald-950 font-bold rounded-xl text-xs hover:bg-white transition shrink-0">Copy Link</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-emerald-800/60">
+                            <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 1 Commission</span>
+                                <div class="text-2xl font-bold mt-1">10%</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Direct invitee investment activation.</p>
+                            </div>
+                            <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 2 Commission</span>
+                                <div class="text-2xl font-bold mt-1">3%</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Second-tier invitee investment activation.</p>
+                            </div>
+                            <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 3 Commission</span>
+                                <div class="text-2xl font-bold mt-1">1%</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Third-tier invitee investment activation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. HELP & SUPPORT -->
+                <div id="view-support" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Help & support</h2>
+                        <p class="text-slate-500 text-sm mt-1">Submit support tickets directly to Admin for prompt resolution.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">Submit Support Ticket</h4>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Issue Category</label>
+                                <select id="support-category" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white font-medium">
+                                    <option>UBA Deposit (Min ₦10k) & Bonus Inquiry</option>
+                                    <option>Withdrawal (Min ₦1,000) & Fee</option>
+                                    <option>10% Daily Return & 24-Day Cycle</option>
+                                    <option>Account Security</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Your Message</label>
+                                <textarea id="support-msg" rows="4" placeholder="Describe your issue..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm"></textarea>
+                            </div>
+                            <button onclick="submitSupportTicket()" class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition">Submit Ticket to Admin <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">Your Support Tickets & Admin Replies</h4>
+                            <div id="user-tickets-list" class="space-y-3">
+                                <div class="text-slate-400 text-xs italic">No support tickets submitted yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= ADMIN CONTROL CENTER ================= -->
+                <div id="view-admin-dashboard" class="tab-content space-y-8">
+                    <div class="bg-emerald-950 p-6 rounded-3xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">ADMIN CONTROL CENTER (RESTRICTED TO OMOOPEOLA1@GMAIL.COM)</span>
+                            <h2 class="text-2xl md:text-3xl font-serif font-bold">Platform Management Dashboard</h2>
+                            <p class="text-emerald-200 text-xs mt-1">Approve UBA deposits (min ₦10k) / withdrawals (min ₦1k), manage users, and issue bonuses.</p>
+                        </div>
+                        <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition shrink-0">
+                            <i class="fa-solid fa-right-from-bracket mr-1"></i> Exit Admin
+                        </button>
+                    </div>
+
+                    <div class="flex overflow-x-auto space-x-2 border-b border-slate-200 pb-4">
+                        <button onclick="switchAdminTab('approvals')" id="adm-btn-approvals" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0">
+                            Approval Queue (<span id="count-pending-approvals">0</span>)
+                        </button>
+                        <button onclick="switchAdminTab('users')" id="adm-btn-users" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0">
+                            Manage Users (<span id="count-total-users">0</span>)
+                        </button>
+                        <button onclick="switchAdminTab('tickets')" id="adm-btn-tickets" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0">
+                            Support Tickets (<span id="count-support-tickets">0</span>)
+                        </button>
+                    </div>
+
+                    <div id="admin-sub-approvals" class="admin-tab-content active space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-serif font-bold text-lg text-slate-900 mb-4">Pending Deposit & Withdrawal Requests</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm min-w-[600px]">
+                                    <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-4">User Email</th>
+                                            <th class="p-4">Type</th>
+                                            <th class="p-4">Amount Requested</th>
+                                            <th class="p-4">Details</th>
+                                            <th class="p-4">Date</th>
+                                            <th class="p-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-approvals-table" class="divide-y divide-slate-100">
+                                        <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No pending requests in queue.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-sub-users" class="admin-tab-content space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <h3 class="font-serif font-bold text-lg text-slate-900">Registered Platform Users & Wallets</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm min-w-[700px]">
+                                    <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-4">Name & Email</th>
+                                            <th class="p-4">Ref Code / Upline</th>
+                                            <th class="p-4">Wallet Balance</th>
+                                            <th class="p-4">Invested Amount</th>
+                                            <th class="p-4">Accrued Yield</th>
+                                            <th class="p-4 text-right">Admin Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table" class="divide-y divide-slate-100">
+                                        <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No registered users found.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-sub-tickets" class="admin-tab-content space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-serif font-bold text-lg text-slate-900 mb-4">User Support Tickets</h3>
+                            <div id="admin-tickets-list" class="space-y-4">
+                                <div class="text-slate-400 text-xs italic">No support tickets submitted.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="modal-deposit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Fund via UBA Transfer</h3>
+                <button onclick="closeModal('modal-deposit')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
             </div>
-        `;
-    }).join('');
-}
-
-function loadUserData() {
-    const db = getDB();
-    if (!currentUser || !db.users[currentUser.email]) return;
-    currentUser = db.users[currentUser.email];
-
-    const firstName = currentUser.name.split(' ')[0];
-    document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
-    document.getElementById('topbar-username').innerText = currentUser.name;
-    document.getElementById('topbar-bankinfo').innerText = `${currentUser.bank} • ${currentUser.accountNumber}`;
-    document.getElementById('user-initials-badge').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-    document.getElementById('referral-code-display').innerText = currentUser.refCode || 'KUDIVA-LEKKXY26';
-
-    updateUserUI();
-}
-
-function persistUserData() {
-    const db = getDB();
-    db.users[currentUser.email] = currentUser;
-    saveDB(db);
-    updateUserUI();
-}
-
-function updateUserUI() {
-    const fmtBal = privacyMask ? '₦••••••' : '₦' + Number(currentUser.balance).toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    const fmtPort = privacyMask ? '₦••••••' : '₦' + Number(currentUser.invested + currentUser.dailyYield).toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    const fmtYield = privacyMask ? '₦••••••' : '₦' + Number(currentUser.dailyYield).toLocaleString('en-NG', { minimumFractionDigits: 2 });
-
-    document.getElementById('stat-portfolio-value').innerText = fmtPort;
-    document.getElementById('stat-available-balance').innerText = fmtBal;
-    document.getElementById('stat-daily-yield').innerText = fmtYield;
-    document.getElementById('portfolio-total-large').innerText = fmtPort;
-    
-    const db = getDB();
-    const pendingCount = db.pendingQueue.filter(q => q.email === currentUser.email).length;
-    document.getElementById('stat-pending-count').innerText = pendingCount;
-
-    const tbody = document.getElementById('transactions-table-body');
-    if (currentUser.transactions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No transactions recorded yet.</td></tr>`;
-    } else {
-        tbody.innerHTML = currentUser.transactions.map(tx => `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-semibold text-slate-900">${tx.desc}</td>
-                <td class="p-4 text-xs font-mono text-slate-500">${tx.ref}</td>
-                <td class="p-4 text-xs text-slate-500">${tx.date}</td>
-                <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">${tx.type}</span></td>
-                <td class="p-4 font-bold text-slate-900">${tx.amount}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
-            </tr>
-        `).join('');
-    }
-
-    const holdingsList = document.getElementById('portfolio-holdings-list');
-    if (currentUser.investments.length === 0) {
-        holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore our 10 plans to earn daily for 24 days.</div>`;
-    } else {
-        holdingsList.innerHTML = currentUser.investments.map((inv, idx) => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div class="space-y-4">
+                <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                    <span class="font-bold block">Official UBA Receiving Account:</span>
+                    <p>Bank: <strong>United Bank for Africa (UBA)</strong></p>
+                    <p>Account Name: <strong>AKINSANYA TIMOTHY OLAKUNLE</strong></p>
+                    <div class="flex items-center justify-between pt-1">
+                        <span>Account Number: <strong class="font-mono text-emerald-950 text-sm" id="uba-acc-num">2231165369</strong></span>
+                        <button onclick="copyUBAAccount()" class="px-2.5 py-1 bg-emerald-700 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-800 transition">Copy Number</button>
+                    </div>
+                    <p class="text-[11px] text-emerald-700 pt-1 border-t border-emerald-200">ℹ️ Min deposit: ₦10,000. Get ₦1,000 recharge bonus (₦2,000 for Plan 2 upward) on your first deposit!</p>
+                </div>
                 <div>
-                    <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
-                    <p class="text-xs text-slate-500">Cycle: 24 Days · Principal: ₦${Number(inv.amount).toLocaleString()} · Daily: ₦${Number(inv.amount * 0.10).toLocaleString()}</p>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Deposit Amount (Min ₦10,000)</label>
+                    <input type="number" id="deposit-amount" value="10000" min="10000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
                 </div>
-                <div class="text-right">
-                    <div class="font-bold text-emerald-700">+ 10% Daily Active</div>
-                    <button onclick="harvestYield(${idx})" class="text-[11px] bg-emerald-700 text-white px-3 py-1 rounded-lg mt-1 font-bold hover:bg-emerald-800 transition">Harvest Yield to Wallet</button>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Your UBA Transfer Reference / Teller No.</label>
+                    <input type="text" id="deposit-ref" placeholder="e.g. TRF-UBA-98214" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono">
                 </div>
+                <button onclick="submitDepositRequest()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Submit for Admin Approval <i class="fa-solid fa-paper-plane ml-2"></i>
+                </button>
             </div>
-        `).join('');
-    }
+        </div>
+    </div>
 
-    const goalsList = document.getElementById('goals-list');
-    goalsList.innerHTML = currentUser.goals.map(g => {
-        const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-        return `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
-                <div class="flex justify-between items-center text-sm">
-                    <span class="font-bold text-slate-900">${g.name}</span>
-                    <span class="font-bold text-emerald-700">${pct}%</span>
-                </div>
-                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div class="bg-emerald-600 h-full rounded-full" style="width: ${pct}%"></div>
-                </div>
-                <div class="flex justify-between text-[11px] text-slate-500">
-                    <span>Current: ₦${Number(g.current).toLocaleString()}</span>
-                    <span>Target: ₦${Number(g.target).toLocaleString()}</span>
-                </div>
+    <div id="modal-withdraw" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Withdraw to Bank</h3>
+                <button onclick="closeModal('modal-withdraw')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
             </div>
-        `;
-    }).join('');
-
-    const ticketsList = document.getElementById('user-tickets-list');
-    if (!currentUser.tickets || currentUser.tickets.length === 0) {
-        ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted yet.</div>`;
-    } else {
-        ticketsList.innerHTML = currentUser.tickets.map(t => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
-                <div class="flex justify-between text-xs font-bold text-slate-700">
-                    <span>${t.category}</span>
-                    <span class="text-slate-400">${t.date}</span>
+            <div class="space-y-4">
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                    <span class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Withdrawal Notice</span>
+                    <p>Minimum withdrawal is <strong>₦1,000</strong>. A 15% platform fee applies to all withdrawals upon Admin approval.</p>
                 </div>
-                <p class="text-xs text-slate-600"><strong>Query:</strong> ${t.msg}</p>
-                <p class="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200"><strong>Admin Reply:</strong> ${t.reply || 'Pending Admin review...'}</p>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Gross Withdrawal Amount (Min ₦1,000)</label>
+                    <input type="number" id="withdraw-gross" value="5000" min="1000" oninput="calculateWithdrawFee()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
+                </div>
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
+                    <div class="flex justify-between"><span>Requested Amount:</span><span id="w-gross-display" class="font-bold">₦5,000.00</span></div>
+                    <div class="flex justify-between text-red-600"><span>15% Platform Fee:</span><span id="w-fee-display" class="font-bold">-₦750.00</span></div>
+                    <div class="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold text-emerald-900"><span>Net Bank Payout:</span><span id="w-net-display">₦4,250.00</span></div>
+                </div>
+                <button onclick="submitWithdrawRequest()" class="w-full py-3.5 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition shadow-lg mt-2">
+                    Submit Withdrawal to Admin <i class="fa-solid fa-arrow-up ml-2"></i>
+                </button>
             </div>
-        `).join('');
-    }
-}
+        </div>
+    </div>
 
-function switchTab(tabId) {
-    if (tabId === 'admin-dashboard') {
-        if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') {
-            alert('Access Denied. Admin Dashboard is restricted to omoopeola1@gmail.com.');
-            return;
-        }
-        loadAdminDashboard();
-    }
-
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('#nav-menu button').forEach(el => {
-        if (el.getAttribute('data-tab') !== 'admin-dashboard') {
-            el.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300';
-        }
-    });
-
-    document.getElementById('view-' + tabId).classList.add('active');
-    
-    const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
-    if (activeBtn) {
-        if (tabId === 'admin-dashboard') {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition bg-amber-500 text-emerald-950 shadow-sm';
-        } else {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition bg-emerald-950 text-white shadow-sm';
-        }
-    }
-    
-    const titles = {
-        overview: 'Your wealth, clearly understood',
-        portfolio: 'My portfolio',
-        explore: 'Explore 10 Investment Plans',
-        transactions: 'Transactions & Approvals',
-        planning: 'Financial planning',
-        rewards: 'Rewards & referrals',
-        support: 'Help & support',
-        'admin-dashboard': 'Admin Control Center'
-    };
-    document.getElementById('current-breadcrumb').innerText = titles[tabId];
-
-    if (window.innerWidth < 768) {
-        const sidebar = document.getElementById('user-sidebar');
-        const backdrop = document.getElementById('mobile-sidebar-backdrop');
-        sidebar.classList.add('-translate-x-full');
-        backdrop.classList.add('hidden');
-    }
-}
-
-function switchAdminTab(subId) {
-    document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
-    document.getElementById('admin-sub-' + subId).classList.add('active');
-
-    document.getElementById('adm-btn-approvals').className = subId === 'approvals' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
-    document.getElementById('adm-btn-users').className = subId === 'users' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
-    document.getElementById('adm-btn-tickets').className = subId === 'tickets' ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
-
-    loadAdminDashboard();
-}
-
-function openDepositModal() { document.getElementById('modal-deposit').classList.remove('hidden'); }
-function openWithdrawModal() { document.getElementById('modal-withdraw').classList.add('hidden'); calculateWithdrawFee(); document.getElementById('modal-withdraw').classList.remove('hidden'); }
-function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-function openInvestModal(plan) {
-    selectedPlanForInvest = plan;
-    document.getElementById('invest-modal-title').innerText = `Invest in ${plan.name}`;
-    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily for 24 Days`;
-    document.getElementById('invest-amount').value = plan.minAmount;
-    document.getElementById('modal-invest').classList.remove('hidden');
-}
-
-function copyUBAAccount() {
-    navigator.clipboard.writeText('2231165369');
-    alert('UBA Account Number (2231165369 - AKINSANYA TIMOTHY OLAKUNLE) copied to clipboard!');
-}
-
-function submitDepositRequest() {
-    const amount = parseFloat(document.getElementById('deposit-amount').value);
-    const ref = document.getElementById('deposit-ref').value.trim();
-    
-    if (!amount || amount < 10000) {
-        alert('Minimum deposit amount is ₦10,000.');
-        return;
-    }
-    if (!ref) {
-        alert('Please enter your UBA transfer reference or teller number.');
-        return;
-    }
-
-    const db = getDB();
-    db.pendingQueue.push({
-        id: 'DEP-' + Math.floor(100000 + Math.random() * 900000),
-        email: currentUser.email,
-        type: 'Deposit',
-        amount: amount,
-        details: `UBA Ref: ${ref}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    });
-
-    currentUser.transactions.unshift({
-        desc: 'UBA Direct Deposit (Pending Admin)',
-        ref: ref,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        type: 'Deposit',
-        amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Pending Approval'
-    });
-
-    saveDB(db);
-    persistUserData();
-    closeModal('modal-deposit');
-    alert('Deposit submitted successfully! Awaiting Admin approval (min ₦10,000 deposit).');
-}
-
-function calculateWithdrawFee() {
-    const gross = parseFloat(document.getElementById('withdraw-gross').value) || 0;
-    const fee = gross * 0.15;
-    const net = gross - fee;
-    document.getElementById('w-gross-display').innerText = '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    document.getElementById('w-fee-display').innerText = '-₦' + fee.toLocaleString('en-NG', { minimumFractionDigits: 2 });
-    document.getElementById('w-net-display').innerText = '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 });
-}
-
-function submitWithdrawRequest() {
-    const gross = parseFloat(document.getElementById('withdraw-gross').value);
-    if (!gross || gross < 1000) {
-        alert('Minimum withdrawal amount is ₦1,000.');
-        return;
-    }
-    if (gross > currentUser.balance) {
-        alert('Insufficient available balance in wallet.');
-        return;
-    }
-
-    const fee = gross * 0.15;
-    const net = gross - fee;
-
-    currentUser.balance -= gross;
-
-    const db = getDB();
-    db.pendingQueue.push({
-        id: 'WIT-' + Math.floor(100000 + Math.random() * 900000),
-        email: currentUser.email,
-        type: 'Withdrawal',
-        amount: gross,
-        netAmount: net,
-        fee: fee,
-        details: `Bank: ${currentUser.bank} (${currentUser.accountNumber}) · Net: ₦${net.toLocaleString()}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    });
-
-    currentUser.transactions.unshift({
-        desc: `Withdrawal to ${currentUser.bank} (Pending)`,
-        ref: 'KDV-WIT-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        type: 'Withdrawal',
-        amount: '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Pending Approval (15% Fee)'
-    });
-
-    saveDB(db);
-    persistUserData();
-    closeModal('modal-withdraw');
-    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your UBA account upon Admin approval (15% fee applied).`);
-}
-
-function executeInvestment() {
-    const amount = parseFloat(document.getElementById('invest-amount').value);
-    if (!selectedPlanForInvest) return;
-    if (!amount || amount < selectedPlanForInvest.minAmount) {
-        alert(`Minimum investment for ${selectedPlanForInvest.name} is ₦${Number(selectedPlanForInvest.minAmount).toLocaleString()}`);
-        return;
-    }
-    if (amount > currentUser.balance) {
-        alert('Insufficient available cash in wallet. Please deposit first.');
-        return;
-    }
-
-    currentUser.balance -= amount;
-    currentUser.invested += amount;
-    currentUser.investments.push({
-        name: selectedPlanForInvest.name,
-        rate: 10.0,
-        amount: amount,
-        cycleDays: 24,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    });
-
-    currentUser.transactions.unshift({
-        desc: `Investment: ${selectedPlanForInvest.name}`,
-        ref: 'KDV-INV-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        type: 'Investment',
-        amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Active (10% Daily for 24 Days)'
-    });
-
-    if (!currentUser.hasActivatedInvestment) {
-        currentUser.hasActivatedInvestment = true;
-        distributeReferralCommissions(amount);
-    }
-
-    persistUserData();
-    closeModal('modal-invest');
-    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name} (10% daily for 24 days active)!`);
-}
-
-function distributeReferralCommissions(investAmount) {
-    const db = getDB();
-    let currentUplineCode = currentUser.uplineRef;
-
-    if (currentUplineCode) {
-        let l1UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === currentUplineCode);
-        if (l1UserEmail && l1UserEmail !== currentUser.email) {
-            let comm1 = investAmount * 0.10;
-            db.users[l1UserEmail].balance += comm1;
-            db.users[l1UserEmail].transactions.unshift({
-                desc: `Referral Commission (Level 1 - 10% from ${currentUser.name})`,
-                ref: 'REF-L1-' + Math.floor(1000 + Math.random() * 9000),
-                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                type: 'Commission',
-                amount: '₦' + comm1.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                status: 'Success'
-            });
-
-            let l2Code = db.users[l1UserEmail].uplineRef;
-            if (l2Code) {
-                let l2UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l2Code);
-                if (l2UserEmail && l2UserEmail !== currentUser.email) {
-                    let comm2 = investAmount * 0.03;
-                    db.users[l2UserEmail].balance += comm2;
-                    db.users[l2UserEmail].transactions.unshift({
-                        desc: `Referral Commission (Level 2 - 3%)`,
-                        ref: 'REF-L2-' + Math.floor(1000 + Math.random() * 9000),
-                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        type: 'Commission',
-                        amount: '₦' + comm2.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                        status: 'Success'
-                    });
-
-                    let l3Code = db.users[l2UserEmail].uplineRef;
-                    if (l3Code) {
-                        let l3UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l3Code);
-                        if (l3UserEmail && l3UserEmail !== currentUser.email) {
-                            let comm3 = investAmount * 0.01;
-                            db.users[l3UserEmail].balance += comm3;
-                            db.users[l3UserEmail].transactions.unshift({
-                                desc: `Referral Commission (Level 3 - 1%)`,
-                                ref: 'REF-L3-' + Math.floor(1000 + Math.random() * 9000),
-                                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                                type: 'Commission',
-                                amount: '₦' + comm3.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                                status: 'Success'
-                            });
-                        }
-                    }
-                }
-            }
-        }
-    }
-    saveDB(db);
-}
-
-function triggerDailyReturnSimulation() {
-    if (!currentUser) return;
-    let yieldEarned = 0;
-    currentUser.investments.forEach(inv => {
-        yieldEarned += inv.amount * 0.10;
-    });
-    if (yieldEarned <= 0) {
-        alert('No active investments to generate 10% daily returns. Explore investments first.');
-        return;
-    }
-    currentUser.dailyYield += yieldEarned;
-    persistUserData();
-    alert(`⚡ 10% Daily Return Accrued! Added ₦${yieldEarned.toLocaleString()} to your yield ledger.`);
-}
-
-function harvestYield(idx) {
-    const yieldAmount = currentUser.dailyYield;
-    if (yieldAmount <= 0) return alert('No accrued yield to harvest');
-    currentUser.balance += yieldAmount;
-    currentUser.dailyYield = 0;
-    currentUser.transactions.unshift({
-        desc: 'Harvested 10% Daily Yield to Wallet',
-        ref: 'KDV-YLD-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        type: 'Yield Harvest',
-        amount: '₦' + yieldAmount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Success'
-    });
-    persistUserData();
-    alert(`Successfully transferred ₦${yieldAmount.toLocaleString()} to your Available Balance!`);
-}
-
-function executeCreateGoal() {
-    const name = document.getElementById('goal-name-input').value;
-    const target = parseFloat(document.getElementById('goal-target-input').value);
-    if (!name || !target) return alert('Fill in all fields');
-    currentUser.goals.push({ name, target, current: 0 });
-    persistUserData();
-    closeModal('modal-goal');
-}
-
-function submitSupportTicket() {
-    const category = document.getElementById('support-category').value;
-    const msg = document.getElementById('support-msg').value.trim();
-    if (!msg) return alert('Enter your support message');
-
-    const ticket = {
-        id: Date.now(),
-        email: currentUser.email,
-        category,
-        msg,
-        reply: '',
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
-
-    currentUser.tickets.unshift(ticket);
-    const db = getDB();
-    db.globalTickets.unshift(ticket);
-    saveDB(db);
-    persistUserData();
-
-    document.getElementById('support-msg').value = '';
-    alert('Support ticket submitted to Admin successfully!');
-}
-
-function togglePrivacy() {
-    privacyMask = !privacyMask;
-    document.getElementById('privacy-icon').className = privacyMask ? 'fa-regular fa-eye-slash text-sm' : 'fa-regular fa-eye text-sm';
-    updateUserUI();
-}
-
-function copyReferralCode() {
-    navigator.clipboard.writeText(currentUser.refCode || 'KUDIVA-LEKKXY26');
-    alert('Your referral code was copied to clipboard!');
-}
-
-function loadAdminDashboard() {
-    if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') return;
-
-    const db = getDB();
-    document.getElementById('count-pending-approvals').innerText = db.pendingQueue.length;
-    document.getElementById('count-total-users').innerText = Object.keys(db.users).length;
-    document.getElementById('count-support-tickets').innerText = db.globalTickets.length;
-
-    const appTable = document.getElementById('admin-approvals-table');
-    if (db.pendingQueue.length === 0) {
-        appTable.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No pending requests in queue.</td></tr>`;
-    } else {
-        appTable.innerHTML = db.pendingQueue.map((item, index) => `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-bold text-slate-900">${item.email}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${item.type === 'Deposit' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${item.type}</span></td>
-                <td class="p-4 font-bold text-slate-900">₦${Number(item.amount).toLocaleString()}</td>
-                <td class="p-4 text-xs text-slate-600">${item.details}</td>
-                <td class="p-4 text-xs text-slate-500">${item.date}</td>
-                <td class="p-4 text-right space-x-2">
-                    <button onclick="adminApprove(${index})" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition">Approve</button>
-                    <button onclick="adminReject(${index})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">Reject</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    const usersTable = document.getElementById('admin-users-table');
-    const userKeys = Object.keys(db.users);
-    if (userKeys.length === 0) {
-        usersTable.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No registered users found.</td></tr>`;
-    } else {
-        usersTable.innerHTML = userKeys.map(email => {
-            const u = db.users[email];
-            return `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4">
-                        <div class="font-bold text-slate-900">${u.name}</div>
-                        <div class="text-xs text-slate-500">${u.email}</div>
-                    </td>
-                    <td class="p-4 text-xs">
-                        <div class="font-mono font-bold text-emerald-800">${u.refCode || 'N/A'}</div>
-                        <div class="text-slate-500">Upline: ${u.uplineRef || 'None'}</div>
-                    </td>
-                    <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
-                    <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
-                    <td class="p-4 font-bold text-emerald-700">₦${Number(u.dailyYield).toLocaleString()}</td>
-                    <td class="p-4 text-right space-x-2">
-                        <button onclick="adminCreditUser('${email}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition">+ Credit</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    const ticketsList = document.getElementById('admin-tickets-list');
-    if (!db.globalTickets || db.globalTickets.length === 0) {
-        ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted.</div>`;
-    } else {
-        ticketsList.innerHTML = db.globalTickets.map((t, idx) => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
-                <div class="flex justify-between text-xs font-bold text-slate-700">
-                    <span>User: ${t.email} (${t.category})</span>
-                    <span class="text-slate-400">${t.date}</span>
-                </div>
-                <p class="text-xs text-slate-800"><strong>Query:</strong> ${t.msg}</p>
-                <div class="flex space-x-2 pt-2">
-                    <input type="text" id="admin-reply-${idx}" placeholder="Type admin response..." value="${t.reply || ''}" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
-                    <button onclick="adminSendReply(${idx})" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition">Send Reply</button>
-                </div>
+    <div id="modal-invest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900" id="invest-modal-title">Activate Investment Plan</h3>
+                <button onclick="closeModal('modal-invest')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
             </div>
-        `).join('');
-    }
-}
+            <div class="space-y-4">
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    <span class="font-bold block mb-1">Plan Yield & Cycle:</span>
+                    <span class="text-base font-bold text-emerald-800" id="invest-modal-subtitle">10% Daily Return for 24 Days</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Investment Amount (₦)</label>
+                    <input type="number" id="invest-amount" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
+                </div>
+                <button onclick="executeInvestment()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Confirm & Start 24-Day Cycle <i class="fa-solid fa-bolt ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
-function adminApprove(index) {
-    const db = getDB();
-    const item = db.pendingQueue.splice(index, 1)[0];
-    const targetUser = db.users[item.email];
+    <div id="modal-goal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Create Savings Goal</h3>
+                <button onclick="closeModal('modal-goal')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Goal Name</label>
+                    <input type="text" id="goal-name-input" placeholder="e.g. New Car" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Target Amount (₦)</label>
+                    <input type="number" id="goal-target-input" value="500000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold">
+                </div>
+                <button onclick="executeCreateGoal()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Create Goal <i class="fa-solid fa-plus ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
-    if (targetUser) {
-        if (item.type === 'Deposit') {
-            let finalCredit = item.amount;
-            let bonusAwarded = 0;
-
-            if (!targetUser.hasFunded) {
-                targetUser.hasFunded = true;
-                if (item.amount >= 50000) {
-                    bonusAwarded = 2000;
-                } else {
-                    bonusAwarded = 1000;
-                }
-                finalCredit += bonusAwarded;
-            }
-
-            targetUser.balance += finalCredit;
-            targetUser.transactions.unshift({
-                desc: `UBA Direct Deposit ${bonusAwarded > 0 ? `(+₦${bonusAwarded.toLocaleString()} Bonus)` : ''} (Approved)`,
-                ref: item.id,
-                date: item.date,
-                type: 'Deposit',
-                amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                status: 'Success'
-            });
-        } else if (item.type === 'Withdrawal') {
-            targetUser.transactions.unshift({
-                desc: `Withdrawal Approved (15% Fee: ₦${Number(item.fee).toLocaleString()})`,
-                ref: item.id,
-                date: item.date,
-                type: 'Withdrawal',
-                amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-                status: `Paid Net ₦${Number(item.netAmount).toLocaleString()}`
-            });
-        }
-    }
-
-    saveDB(db);
-    loadAdminDashboard();
-    alert(`Successfully approved ${item.type} of ₦${Number(item.amount).toLocaleString()} for ${item.email}`);
-}
-
-function adminReject(index) {
-    const db = getDB();
-    const item = db.pendingQueue.splice(index, 1)[0];
-    const targetUser = db.users[item.email];
-
-    if (targetUser) {
-        if (item.type === 'Withdrawal') {
-            targetUser.balance += item.amount;
-        }
-        targetUser.transactions.unshift({
-            desc: `${item.type} Request Rejected by Admin`,
-            ref: item.id,
-            date: item.date,
-            type: item.type,
-            amount: '₦' + Number(item.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-            status: 'Rejected'
-        });
-    }
-
-    saveDB(db);
-    loadAdminDashboard();
-    alert(`Rejected ${item.type} request.`);
-}
-
-function adminCreditUser(email) {
-    const amtStr = prompt(`Enter amount in NGN to credit ${email}:`, '10000');
-    const amt = parseFloat(amtStr);
-    if (!amt || amt <= 0) return;
-
-    const db = getDB();
-    if (db.users[email]) {
-        db.users[email].balance += amt;
-        db.users[email].transactions.unshift({
-            desc: 'Admin Manual Credit',
-            ref: 'KDV-ADM-' + Math.floor(1000 + Math.random() * 9000),
-            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            type: 'Credit',
-            amount: '₦' + amt.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-            status: 'Success'
-        });
-        saveDB(db);
-        loadAdminDashboard();
-        alert(`Successfully credited ₦${amt.toLocaleString()} to ${email}`);
-    }
-}
-
-function adminTriggerAllDailyYields() {
-    const db = getDB();
-    let count = 0;
-    Object.keys(db.users).forEach(email => {
-        let u = db.users[email];
-        let earned = 0;
-        u.investments.forEach(inv => {
-            earned += inv.amount * 0.10;
-        });
-        if (earned > 0) {
-            u.dailyYield += earned;
-            count++;
-        }
-    });
-    saveDB(db);
-    loadAdminDashboard();
-    alert(`Successfully triggered 10% daily returns across all active investments for ${count} users!`);
-}
-
-function adminSendReply(idx) {
-    const replyText = document.getElementById(`admin-reply-${idx}`).value.trim();
-    if (!replyText) return alert('Enter a reply message');
-
-    const db = getDB();
-    const ticket = db.globalTickets[idx];
-    ticket.reply = replyText;
-
-    if (db.users[ticket.email]) {
-        const uTicket = db.users[ticket.email].tickets.find(t => t.id === ticket.id || t.msg === ticket.msg);
-        if (uTicket) uTicket.reply = replyText;
-    }
-
-    saveDB(db);
-    loadAdminDashboard();
-    alert('Support reply sent successfully.');
-}
-
-function calculateCompound() {
-    const p = parseFloat(document.getElementById('calc-principal').value) || 0;
-    const days = parseInt(document.getElementById('calc-days').value) || 24;
-    document.getElementById('days-display').innerText = `${days} Days`;
-    const total = p * Math.pow(1.10, days);
-    document.getElementById('calc-result').innerText = '₦' + Math.round(total).toLocaleString('en-NG');
-}
+    <script src="app.js"></script>
+</body>
+</html>
