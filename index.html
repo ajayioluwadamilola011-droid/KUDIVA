@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUDIVA — Wealth, With Clarity (UBA & Supabase Secure)</title>
+    <!-- Tailwind CSS for modern responsive layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Editorial Serif + Clean Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kudiva: {
+                            dark: '#0d1914',
+                            sidebar: '#0b1612',
+                            card: '#13271f',
+                            emerald: '#173526',
+                            mint: '#c2e3c8',
+                            lightmint: '#eaf4ec',
+                            accent: '#234e38',
+                            muted: '#6b8277',
+                            border: '#dcebe0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f7faf8; color: #111827; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1612; }
+        ::-webkit-scrollbar-thumb { background: #234e38; border-radius: 3px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .admin-tab-content { display: none; }
+        .admin-tab-content.active { display: block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#f7faf8] text-slate-800 antialiased selection:bg-emerald-200 selection:text-emerald-900">
+
+    <!-- AUTHENTICATION & ONBOARDING MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div class="bg-[#0d1914] p-6 text-white relative">
+                <div class="absolute top-4 right-4 bg-emerald-900/60 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-medium border border-emerald-700/50">
+                    <i class="fa-solid fa-shield-halved mr-1"></i> UBA & Supabase Secure
+                </div>
+                <div class="flex items-center space-x-2.5 mb-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-lg font-serif">K</div>
+                    <span class="text-xl font-bold tracking-wider font-serif">KUDIVA</span>
+                </div>
+                <h2 class="text-2xl font-serif font-bold">Wealth, With Clarity</h2>
+                <p class="text-emerald-200/80 text-sm mt-1">Register your account, fund via UBA, and earn 10% daily returns.</p>
+            </div>
+            
+            <div class="p-6">
+                <!-- Toggle Tabs -->
+                <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition">Sign In</button>
+                    <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition">Create Account</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="e.g. omoopeola1@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password / PIN</label>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-[#0d1914] text-white font-semibold rounded-xl hover:bg-emerald-950 transition shadow-lg shadow-emerald-950/20 text-sm mt-2">
+                        Access Workspace <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
+                        <input type="text" id="reg-name" required placeholder="e.g. Olalekan Ogunsola" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address (Use omoopeola1@gmail.com for Admin)</label>
+                        <input type="email" id="reg-email" required placeholder="e.g. omoopeola1@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Linked Deposit Bank</label>
+                        <select id="reg-bank" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm bg-white font-medium text-emerald-950">
+                            <option value="UBA Nigeria">United Bank for Africa (UBA)</option>
+                            <option value="GTBank">Guaranty Trust Bank (GTB)</option>
+                            <option value="Zenith Bank">Zenith Bank Plc</option>
+                            <option value="Access Bank">Access Bank Plc</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Account Number (10 digits)</label>
+                        <input type="text" id="reg-accno" required maxlength="10" placeholder="2084920194" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+                        <input type="password" id="reg-password" required placeholder="Create secure password" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-emerald-700 text-white font-semibold rounded-xl hover:bg-emerald-800 transition shadow-lg shadow-emerald-700/20 text-sm mt-2">
+                        Register Account & Get UBA Wallet <i class="fa-solid fa-wallet ml-2"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-400">Supabase DB: <span class="font-mono text-[10px]">https://hbleacgjtfkvjdzchjov.supabase.co</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="flex h-screen overflow-hidden opacity-40 pointer-events-none transition duration-300">
+        
+        <!-- SIDEBAR -->
+        <aside id="user-sidebar" class="w-72 bg-[#0b1612] text-slate-300 flex flex-col justify-between border-r border-[#173526] shrink-0 select-none">
+            <div>
+                <div class="p-6 flex items-center space-x-3 border-b border-[#173526]">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-xl font-serif shadow-md">K</div>
+                    <div>
+                        <h1 class="text-white font-serif font-bold text-lg tracking-wider">KUDIVA</h1>
+                        <p class="text-[10px] text-emerald-400 tracking-widest uppercase font-semibold">Wealth, With Clarity</p>
+                    </div>
+                </div>
+
+                <div class="px-4 py-6">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 px-3 mb-3">Your Space</p>
+                    <nav class="space-y-1.5" id="nav-menu">
+                        <button onclick="switchTab('overview')" data-tab="overview" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition bg-emerald-950 text-white shadow-sm">
+                            <i class="fa-solid fa-house w-5 text-emerald-400"></i>
+                            <span>Overview</span>
+                        </button>
+                        <button onclick="switchTab('portfolio')" data-tab="portfolio" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-briefcase w-5 text-emerald-400"></i>
+                            <span>My portfolio</span>
+                        </button>
+                        <button onclick="switchTab('explore')" data-tab="explore" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-chart-line w-5 text-emerald-400"></i>
+                            <span>Explore investments (10% Daily)</span>
+                        </button>
+                        <button onclick="switchTab('transactions')" data-tab="transactions" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-right-left w-5 text-emerald-400"></i>
+                            <span>Transactions & Approvals</span>
+                        </button>
+                        <button onclick="switchTab('planning')" data-tab="planning" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-calculator w-5 text-emerald-400"></i>
+                            <span>Financial planning</span>
+                        </button>
+                        <button onclick="switchTab('rewards')" data-tab="rewards" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-gift w-5 text-emerald-400"></i>
+                            <span>Rewards & referrals</span>
+                        </button>
+                        <button onclick="switchTab('support')" data-tab="support" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300">
+                            <i class="fa-solid fa-circle-question w-5 text-emerald-400"></i>
+                            <span>Help & support</span>
+                        </button>
+                        <!-- Admin Dashboard Nav Button (Only shown for omoopeola1@gmail.com) -->
+                        <div id="admin-nav-container" class="hidden pt-4 border-t border-emerald-900/50 mt-4">
+                            <button onclick="switchTab('admin-dashboard')" data-tab="admin-dashboard" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30">
+                                <i class="fa-solid fa-gauge-high w-5 text-amber-400"></i>
+                                <span>Admin Dashboard</span>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="p-4 m-4 rounded-2xl bg-[#13271f] border border-[#1f3f31]">
+                <div class="flex items-center space-x-2 text-emerald-400 mb-1.5">
+                    <i class="fa-solid fa-shield-check text-sm"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">UBA Vault Active</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Deposits & withdrawals managed securely.
+                </p>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <header class="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
+                <div class="flex items-center space-x-2 text-sm text-slate-500 font-medium">
+                    <span id="workspace-title-label">Workspace</span>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                    <span id="current-breadcrumb" class="text-slate-900 font-semibold">Your wealth, clearly understood</span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="triggerDailyReturnSimulation()" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl text-xs font-bold transition flex items-center space-x-2 border border-emerald-300">
+                        <i class="fa-solid fa-bolt text-amber-500 animate-bounce"></i>
+                        <span>Accrue 10% Daily Return</span>
+                    </button>
+                    <div class="hidden md:flex items-center space-x-2 bg-slate-100 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-700">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Nigeria · NGN (UBA)</span>
+                    </div>
+                    <div class="flex items-center space-x-3 pl-2 border-l border-slate-200">
+                        <div id="user-initials-badge" class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">OO</div>
+                        <div class="hidden md:block text-left">
+                            <div id="topbar-username" class="text-xs font-bold text-slate-900">Ola Omoope</div>
+                            <div id="topbar-bankinfo" class="text-[10px] text-slate-500">UBA • 2084920194</div>
+                        </div>
+                        <button onclick="handleLogout()" class="text-slate-400 hover:text-red-600 transition ml-2 p-1.5" title="Sign out">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 p-8 max-w-7xl w-full mx-auto pb-20">
+                
+                <!-- 1. OVERVIEW -->
+                <div id="view-overview" class="tab-content active space-y-8 animate-in fade-in duration-200">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Your wealth, clearly understood</h2>
+                        <p class="text-slate-500 text-sm mt-1">A thoughtful view of your financial life starts here.</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-8 text-white relative overflow-hidden shadow-xl flex flex-col md:flex-row items-center justify-between">
+                        <div class="relative z-10 max-w-xl">
+                            <div class="inline-flex items-center space-x-2 bg-emerald-900/60 text-emerald-300 px-3 py-1 rounded-full text-xs font-medium mb-4 border border-emerald-700/40">
+                                <i class="fa-solid fa-sparkles text-amber-300"></i>
+                                <span>10% DAILY RETURN YIELD ENGINE</span>
+                            </div>
+                            <h3 id="welcome-heading" class="text-3xl md:text-4xl font-serif font-bold mb-3">Welcome back, Ola</h3>
+                            <p class="text-emerald-100/80 text-sm leading-relaxed mb-6">
+                                Fund your UBA account, invest in 10% daily yield portfolios, and withdraw earnings anytime (15% platform withdrawal fee applies).
+                            </p>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <button onclick="switchTab('explore')" class="px-6 py-3 bg-[#c2e3c8] text-emerald-950 font-semibold rounded-xl hover:bg-white transition text-sm flex items-center space-x-2 shadow-lg">
+                                    <span>Explore 10% Products</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="openDepositModal()" class="px-6 py-3 bg-emerald-800 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm border border-emerald-600/50">
+                                    <i class="fa-solid fa-plus-circle mr-2"></i> Fund via UBA
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-8 md:mt-0 relative flex items-center justify-center">
+                            <div class="w-44 h-44 rounded-full bg-emerald-800/40 border border-emerald-600/30 flex items-center justify-center relative shadow-inner">
+                                <div class="w-32 h-32 rounded-full bg-emerald-700/50 flex items-center justify-center text-emerald-200 text-5xl font-serif font-bold shadow-lg">K</div>
+                                <div class="absolute -top-2 right-4 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-emerald-950 text-xs font-bold animate-pulse">10%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between text-xs text-emerald-900">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold"><i class="fa-solid fa-university"></i></div>
+                            <div>
+                                <span class="font-bold">Official UBA Receiving Account: <span class="font-mono text-emerald-950">1029384756 (KUDIVA WEALTH LTD)</span></span>
+                                <p class="text-emerald-700">All direct bank transfers submitted here are reviewed and approved by Admin within 10 minutes.</p>
+                            </div>
+                        </div>
+                        <button onclick="openDepositModal()" class="px-4 py-2 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 transition shadow">Deposit Funds</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Portfolio value</span>
+                                <button onclick="togglePrivacy()" class="text-slate-400 hover:text-slate-700 transition"><i class="fa-regular fa-eye text-sm" id="privacy-icon"></i></button>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-portfolio-value">₦0.00</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Active investments + daily yields</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Available balance</span>
+                                <i class="fa-solid fa-wallet text-slate-400"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-available-balance">₦0.00</div>
+                            <button onclick="openDepositModal()" class="text-[11px] text-emerald-700 font-bold hover:underline mt-1 block">+ Deposit from UBA</button>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Accrued 10% Yields</span>
+                                <i class="fa-solid fa-bolt text-amber-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-emerald-700" id="stat-daily-yield">₦0.00</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Ready to harvest or reinvest</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Approvals</span>
+                                <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                            </div>
+                            <div class="text-2xl font-bold font-serif text-slate-900" id="stat-pending-count">0</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Deposits / Withdrawals queue</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h4 class="font-serif font-bold text-lg text-slate-900">Portfolio growth over time</h4>
+                                    <p class="text-xs text-slate-500">Tracking principal and daily 10% returns.</p>
+                                </div>
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg">10% Daily Yield Active</span>
+                            </div>
+                            <div class="h-48 w-full flex items-end relative pt-6 pb-2 bg-slate-50 rounded-2xl p-4">
+                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6" id="chart-overlay-box">
+                                    <i class="fa-solid fa-chart-line text-3xl text-emerald-600 mb-2"></i>
+                                    <span class="text-xs font-bold text-slate-700" id="chart-status-text">Fund your account & invest to watch your 10% daily yield compound.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-serif font-bold text-lg text-slate-900 mb-1">Quick actions</h4>
+                                <p class="text-xs text-slate-500 mb-4">UBA & Kudiva wallet tools.</p>
+                                <div class="space-y-2.5">
+                                    <button onclick="openDepositModal()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 transition text-sm font-semibold text-slate-700 border border-slate-100">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-arrow-down text-xs"></i></div>
+                                            <span>Add money (UBA Deposit)</span>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
+                                    </button>
+                                    <button onclick="openWithdrawModal()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 transition text-sm font-semibold text-slate-700 border border-slate-100">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-arrow-up text-xs"></i></div>
+                                            <span>Withdraw (15% fee)</span>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
+                                    </button>
+                                    <button onclick="switchTab('explore')" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 transition text-sm font-semibold text-slate-700 border border-slate-100">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-bolt text-xs text-amber-500"></i></div>
+                                            <span>Explore 10% Daily Products</span>
+                                        </div>
+                                        <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. PORTFOLIO -->
+                <div id="view-portfolio" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">My portfolio</h2>
+                        <p class="text-slate-500 text-sm mt-1">View active investments and harvest your 10% daily returns.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Total portfolio value</span>
+                                <div class="text-4xl font-bold font-serif text-slate-900 mb-2" id="portfolio-total-large">₦0.00</div>
+                                <p class="text-xs text-emerald-700 font-semibold mb-6">+ 10% Daily Return Compounding</p>
+                            </div>
+                            <div class="space-y-3 pt-6 border-t border-slate-100">
+                                <button onclick="triggerDailyReturnSimulation()" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs transition shadow">
+                                    <i class="fa-solid fa-bolt mr-1 text-amber-300"></i> Trigger 10% Daily Accrual Now
+                                </button>
+                                <div class="flex space-x-3">
+                                    <button onclick="openDepositModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-800 rounded-xl font-semibold text-xs hover:bg-slate-200 transition">Deposit</button>
+                                    <button onclick="openWithdrawModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-800 rounded-xl font-semibold text-xs hover:bg-slate-200 transition">Withdraw</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2">
+                            <h4 class="font-serif font-bold text-lg text-slate-900 mb-4">Active Investments & Yield Positions</h4>
+                            <div id="portfolio-holdings-list" class="space-y-4">
+                                <div class="text-center py-10 text-slate-400 text-sm">
+                                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                                    No active investments yet. Explore products to earn 10% daily.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. EXPLORE INVESTMENTS -->
+                <div id="view-explore" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Explore investments (10% Daily Return)</h2>
+                        <p class="text-slate-500 text-sm mt-1">Select high-yield Nigerian portfolios designed to generate 10% returns daily.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="products-grid">
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
+                            <div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">High Yield</span>
+                                    <span class="text-emerald-700 font-bold text-sm">10.0% DAILY</span>
+                                </div>
+                                <h3 class="font-serif font-bold text-xl text-slate-900 mb-2">UBA Treasury Prime Growth</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-6">Invest available wallet funds to earn exactly 10% daily return credited to your yield ledger.</p>
+                            </div>
+                            <button onclick="openInvestModal('UBA Treasury Prime Growth', 10.0)" class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2">
+                                <span>Invest (10% Daily)</span>
+                                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
+                            <div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">Sovereign Fund</span>
+                                    <span class="text-emerald-700 font-bold text-sm">10.0% DAILY</span>
+                                </div>
+                                <h3 class="font-serif font-bold text-xl text-slate-900 mb-2">Nigeria Sovereign Eurobond Alpha</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-6">Backed by government liquidity pools with daily compounding distributions.</p>
+                            </div>
+                            <button onclick="openInvestModal('Nigeria Sovereign Eurobond Alpha', 10.0)" class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2">
+                                <span>Invest (10% Daily)</span>
+                                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
+                            <div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">Digital Assets</span>
+                                    <span class="text-emerald-700 font-bold text-sm">10.0% DAILY</span>
+                                </div>
+                                <h3 class="font-serif font-bold text-xl text-slate-900 mb-2">Kudiva Blue-Chip Dollar Fund</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-6">Hedge against inflation while collecting guaranteed 10% daily returns.</p>
+                            </div>
+                            <button onclick="openInvestModal('Kudiva Blue-Chip Dollar Fund', 10.0)" class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2">
+                                <span>Invest (10% Daily)</span>
+                                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. TRANSACTIONS -->
+                <div id="view-transactions" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Transactions & Approval Queue</h2>
+                        <p class="text-slate-500 text-sm mt-1">All deposits and withdrawals route through Admin for verification and approval.</p>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="font-serif font-bold text-lg text-slate-900">Your Activity Ledger</h4>
+                            <div class="text-xs text-slate-500">Note: Withdrawals incur a 15% platform fee deducted upon approval.</div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4">Description</th>
+                                        <th class="p-4">Reference</th>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Type</th>
+                                        <th class="p-4">Amount</th>
+                                        <th class="p-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No transactions recorded yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. FINANCIAL PLANNING -->
+                <div id="view-planning" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Financial planning</h2>
+                        <p class="text-slate-500 text-sm mt-1">Calculate compounding growth at 10% daily returns.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">10% Daily Return Calculator</h4>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Initial Investment (₦)</label>
+                                <input type="number" id="calc-principal" value="100000" oninput="calculateCompound()" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Holding Period (Days)</label>
+                                <input type="range" id="calc-days" min="1" max="30" value="10" oninput="calculateCompound()" class="w-full accent-emerald-600">
+                                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 Day</span><span id="days-display">10 Days</span><span>30 Days</span></div>
+                            </div>
+                            <div class="p-6 rounded-2xl bg-[#0d1914] text-white flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Projected Yield Value</span>
+                                    <div class="text-3xl font-serif font-bold mt-1" id="calc-result">₦0.00</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-amber-300 font-bold">Return Rate</span>
+                                    <div class="text-lg font-bold">10% Daily</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-serif font-bold text-xl text-slate-900">Savings Targets</h4>
+                                <button onclick="openGoalModal()" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition">+ New Goal</button>
+                            </div>
+                            <div id="goals-list" class="space-y-4">
+                                <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-bold text-slate-900 text-sm">UBA Emergency Reserve</h5>
+                                        <p class="text-xs text-slate-500">Target: ₦500,000 · Current: ₦50,000</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">10%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. REWARDS & REFERRALS -->
+                <div id="view-rewards" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Rewards & referrals</h2>
+                        <p class="text-slate-500 text-sm mt-1">Earn ₦5,000 bonus wallet credit when referred friends deposit via UBA.</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-8 text-white">
+                        <h3 class="text-2xl font-serif font-bold mb-2">Your Referral Code</h3>
+                        <p class="text-emerald-200 text-sm mb-6">Share this code with friends and colleagues.</p>
+                        <div class="flex items-center space-x-3 bg-emerald-950/80 p-4 rounded-2xl border border-emerald-700/50 max-w-md">
+                            <span id="referral-code-display" class="font-mono text-xl font-bold tracking-wider text-emerald-300 flex-1">KUDIVA-LEKKXY26</span>
+                            <button onclick="copyReferralCode()" class="px-4 py-2 bg-[#c2e3c8] text-emerald-950 font-bold rounded-xl text-xs hover:bg-white transition">Copy Code</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. HELP & SUPPORT -->
+                <div id="view-support" class="tab-content space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
+                        <h2 class="text-3xl font-serif font-bold text-slate-900">Help & support</h2>
+                        <p class="text-slate-500 text-sm mt-1">Submit support tickets directly to Admin for prompt resolution.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">Submit Support Ticket</h4>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Issue Category</label>
+                                <select id="support-category" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white font-medium">
+                                    <option>UBA Deposit Approval Delay</option>
+                                    <option>Withdrawal & 15% Fee Inquiry</option>
+                                    <option>10% Daily Return Accrual</option>
+                                    <option>Account Security</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Your Message</label>
+                                <textarea id="support-msg" rows="4" placeholder="Describe your issue..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm"></textarea>
+                            </div>
+                            <button onclick="submitSupportTicket()" class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition">Submit Ticket to Admin <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            <h4 class="font-serif font-bold text-xl text-slate-900">Your Support Tickets & Admin Replies</h4>
+                            <div id="user-tickets-list" class="space-y-3">
+                                <div class="text-slate-400 text-xs italic">No support tickets submitted yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= ADMIN CONTROL CENTER VIEW ================= -->
+                <div id="view-admin-dashboard" class="tab-content space-y-8">
+                    <div class="bg-emerald-950 p-6 rounded-3xl text-white flex items-center justify-between shadow-lg">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">ADMIN CONTROL CENTER (RESTRICTED TO OMOOPEOLA1@GMAIL.COM)</span>
+                            <h2 class="text-3xl font-serif font-bold">Platform Management Dashboard</h2>
+                            <p class="text-emerald-200 text-xs mt-1">Approve UBA deposits/withdrawals, manage users, and respond to support tickets.</p>
+                        </div>
+                        <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition">
+                            <i class="fa-solid fa-right-from-bracket mr-1"></i> Exit Admin
+                        </button>
+                    </div>
+
+                    <div class="flex space-x-2 border-b border-slate-200 pb-4">
+                        <button onclick="switchAdminTab('approvals')" id="adm-btn-approvals" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow">
+                            Approval Queue (<span id="count-pending-approvals">0</span>)
+                        </button>
+                        <button onclick="switchAdminTab('users')" id="adm-btn-users" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition">
+                            Manage Users (<span id="count-total-users">0</span>)
+                        </button>
+                        <button onclick="switchAdminTab('tickets')" id="adm-btn-tickets" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition">
+                            Support Tickets (<span id="count-support-tickets">0</span>)
+                        </button>
+                    </div>
+
+                    <div id="admin-sub-approvals" class="admin-tab-content active space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-serif font-bold text-lg text-slate-900 mb-4">Pending Deposit & Withdrawal Requests</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-4">User Email</th>
+                                            <th class="p-4">Type</th>
+                                            <th class="p-4">Amount Requested</th>
+                                            <th class="p-4">Details / Fee</th>
+                                            <th class="p-4">Date</th>
+                                            <th class="p-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-approvals-table" class="divide-y divide-slate-100">
+                                        <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No pending requests in queue.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-sub-users" class="admin-tab-content space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-serif font-bold text-lg text-slate-900">Registered Platform Users & Wallets</h3>
+                                <button onclick="adminTriggerAllDailyYields()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition">
+                                    <i class="fa-solid fa-bolt mr-1"></i> Force 10% Daily Yield for All Users
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-4">Name & Email</th>
+                                            <th class="p-4">UBA Bank / Acc No</th>
+                                            <th class="p-4">Wallet Balance</th>
+                                            <th class="p-4">Invested Amount</th>
+                                            <th class="p-4">Accrued Yield</th>
+                                            <th class="p-4 text-right">Admin Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table" class="divide-y divide-slate-100">
+                                        <tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">No registered users found.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-sub-tickets" class="admin-tab-content space-y-6">
+                        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-serif font-bold text-lg text-slate-900 mb-4">User Support Tickets</h3>
+                            <div id="admin-tickets-list" class="space-y-4">
+                                <div class="text-slate-400 text-xs italic">No support tickets submitted.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="modal-deposit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Fund via UBA Transfer</h3>
+                <button onclick="closeModal('modal-deposit')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
+                    <span class="font-bold block">Official UBA Receiving Details:</span>
+                    <p>Bank: <strong>United Bank for Africa (UBA)</strong></p>
+                    <p>Account Name: <strong>KUDIVA WEALTH LTD</strong></p>
+                    <p>Account Number: <strong class="font-mono text-emerald-950 text-sm">1029384756</strong></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Deposit Amount (₦)</label>
+                    <input type="number" id="deposit-amount" value="50000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Your UBA Transfer Reference / Teller No.</label>
+                    <input type="text" id="deposit-ref" placeholder="e.g. TRF-UBA-98214" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono">
+                </div>
+                <button onclick="submitDepositRequest()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg shadow-emerald-700/20 mt-2">
+                    Submit for Admin Approval <i class="fa-solid fa-paper-plane ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-withdraw" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Withdraw to Bank</h3>
+                <button onclick="closeModal('modal-withdraw')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                    <span class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 15% Platform Withdrawal Fee Notice</span>
+                    <p>A mandatory 15% processing fee applies to all withdrawals and is deducted before bank payout upon Admin approval.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Gross Withdrawal Amount (₦)</label>
+                    <input type="number" id="withdraw-gross" value="20000" oninput="calculateWithdrawFee()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
+                </div>
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2">
+                    <div class="flex justify-between"><span>Requested Amount:</span><span id="w-gross-display" class="font-bold">₦20,000.00</span></div>
+                    <div class="flex justify-between text-red-600"><span>15% Platform Fee:</span><span id="w-fee-display" class="font-bold">-₦3,000.00</span></div>
+                    <div class="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold text-emerald-900"><span>Net Bank Payout:</span><span id="w-net-display">₦17,000.00</span></div>
+                </div>
+                <button onclick="submitWithdrawRequest()" class="w-full py-3.5 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition shadow-lg mt-2">
+                    Submit Withdrawal to Admin <i class="fa-solid fa-arrow-up ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-invest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900" id="invest-title">Allocate 10% Daily Investment</h3>
+                <button onclick="closeModal('modal-invest')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    <span class="font-bold block mb-1">Guaranteed Yield Rate:</span>
+                    <span class="text-base font-bold text-emerald-800">10.0% Daily Return</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Investment Amount (₦)</label>
+                    <input type="number" id="invest-amount" value="50000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-lg font-bold text-slate-900">
+                </div>
+                <button onclick="executeInvestment()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Confirm & Start Earning 10% Daily <i class="fa-solid fa-bolt ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-goal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Create Savings Goal</h3>
+                <button onclick="closeModal('modal-goal')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Goal Name</label>
+                    <input type="text" id="goal-name-input" placeholder="e.g. New Car" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Target Amount (₦)</label>
+                    <input type="number" id="goal-target-input" value="500000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold">
+                </div>
+                <button onclick="executeCreateGoal()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Create Goal <i class="fa-solid fa-plus ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link external app.js script -->
+    <script src="app.js"></script>
+</body>
+</html>
