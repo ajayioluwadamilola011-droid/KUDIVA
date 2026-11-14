@@ -181,7 +181,11 @@
                 </div>
 
                 <div class="flex items-center space-x-3">
-                    <div class="flex items-center space-x-3 pl-2">
+                    <button onclick="openBankModal()" class="px-3 py-1.5 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 hover:bg-emerald-100 transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-university"></i>
+                        <span id="topbar-bank-tag">Set Bank Account</span>
+                    </button>
+                    <div class="flex items-center space-x-3 pl-2 border-l border-slate-200">
                         <div id="user-initials-badge" class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">OO</div>
                         <div class="hidden md:block text-left">
                             <div id="topbar-username" class="text-xs font-bold text-slate-900">Ola Omoope</div>
@@ -196,7 +200,7 @@
 
             <main class="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto pb-20">
                 
-                <!-- 1. HOME (OVERVIEW) -->
+                <!-- 1. HOME -->
                 <div id="view-overview" class="tab-content active space-y-8 animate-in fade-in duration-200">
                     <div>
                         <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
@@ -208,11 +212,11 @@
                         <div class="relative z-10 max-w-xl">
                             <div class="inline-flex items-center space-x-2 bg-emerald-900/60 text-emerald-300 px-3 py-1 rounded-full text-xs font-medium mb-4 border border-emerald-700/40">
                                 <i class="fa-solid fa-sparkles text-amber-300"></i>
-                                <span>10% DAILY RETURN AUTO-YIELD ENGINE</span>
+                                <span>10% EXACT 24-HOUR DAILY AUTO-YIELD</span>
                             </div>
                             <h3 id="welcome-heading" class="text-2xl md:text-4xl font-serif font-bold mb-3">Welcome back, User</h3>
                             <p class="text-emerald-100/80 text-sm leading-relaxed mb-6">
-                                Fund via UBA (Min <span class="label-min-dep">₦10,000</span>) to get recharge bonus. Choose from our 10 investment plans and earn automatically for 24 days!
+                                Fund via UBA (Min <span class="label-min-dep">₦10,000</span>) to get recharge bonus. Daily 10% returns drop exactly every 24 hours directly into your available balance for 24 days!
                             </p>
                             <div class="flex flex-wrap items-center gap-3">
                                 <button onclick="switchTab('explore')" class="px-6 py-3 bg-[#c2e3c8] text-emerald-950 font-semibold rounded-xl hover:bg-white transition text-sm flex items-center space-x-2 shadow-lg">
@@ -227,7 +231,7 @@
                         <div class="mt-8 md:mt-0 relative flex items-center justify-center">
                             <div class="w-44 h-44 rounded-full bg-emerald-800/40 border border-emerald-600/30 flex items-center justify-center relative shadow-inner">
                                 <div class="w-32 h-32 rounded-full bg-emerald-700/50 flex items-center justify-center text-emerald-200 text-5xl font-serif font-bold shadow-lg">K</div>
-                                <div class="absolute -top-2 right-4 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-emerald-950 text-xs font-bold animate-pulse">10%</div>
+                                <div class="absolute -top-2 right-4 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-emerald-950 text-xs font-bold animate-pulse">24h</div>
                             </div>
                         </div>
                     </div>
@@ -250,7 +254,7 @@
                                 <button onclick="togglePrivacy()" class="text-slate-400 hover:text-slate-700 transition"><i class="fa-regular fa-eye text-sm" id="privacy-icon"></i></button>
                             </div>
                             <div class="text-2xl font-bold font-serif text-slate-900" id="stat-portfolio-value">₦0.00</div>
-                            <p class="text-[11px] text-slate-500 mt-1">Active investments + daily yields</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Active investments principal</p>
                         </div>
                         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
                             <div class="flex items-center justify-between mb-4">
@@ -262,11 +266,11 @@
                         </div>
                         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
                             <div class="flex items-center justify-between mb-4">
-                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Accrued Auto-Yields</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Earned Yields</span>
                                 <i class="fa-solid fa-bolt text-amber-500"></i>
                             </div>
                             <div class="text-2xl font-bold font-serif text-emerald-700" id="stat-daily-yield">₦0.00</div>
-                            <p class="text-[11px] text-slate-500 mt-1">Ready to harvest or reinvest</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Paid directly to wallet every 24h</p>
                         </div>
                         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition">
                             <div class="flex items-center justify-between mb-4">
@@ -284,15 +288,15 @@
                     <div>
                         <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
                         <h2 class="text-3xl font-serif font-bold text-slate-900">My portfolio</h2>
-                        <p class="text-slate-500 text-sm mt-1">View active investments and harvest your automatic daily returns.</p>
+                        <p class="text-slate-500 text-sm mt-1">View active investments and 24-hour yield schedules.</p>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
                             <div>
-                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Total portfolio value</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Total active investments</span>
                                 <div class="text-4xl font-bold font-serif text-slate-900 mb-2" id="portfolio-total-large">₦0.00</div>
-                                <p class="text-xs text-emerald-700 font-semibold mb-6">+ 10% Daily Auto-Yield Active</p>
+                                <p class="text-xs text-emerald-700 font-semibold mb-6">+ 10% Daily Auto-Yield (Every 24h)</p>
                             </div>
                             <div class="space-y-3 pt-6 border-t border-slate-100">
                                 <div class="flex space-x-3">
@@ -303,7 +307,7 @@
                         </div>
 
                         <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm lg:col-span-2">
-                            <h4 class="font-serif font-bold text-lg text-slate-900 mb-4">Active Investments & 24-Day Yield Positions</h4>
+                            <h4 class="font-serif font-bold text-lg text-slate-900 mb-4">Active Investments & Next Yield Drop Schedule</h4>
                             <div id="portfolio-holdings-list" class="space-y-4">
                                 <div class="text-center py-10 text-slate-400 text-sm">
                                     <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
@@ -319,7 +323,7 @@
                     <div>
                         <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-1 block">KUDIVA PERSONAL WEALTH</span>
                         <h2 class="text-3xl font-serif font-bold text-slate-900">Explore 10 Investment Plans (24-Day Cycle)</h2>
-                        <p class="text-slate-500 text-sm mt-1">Select from our 10 professional asset tiers. Earn 10% daily automatically for 24 days.</p>
+                        <p class="text-slate-500 text-sm mt-1">Select from our 10 professional asset tiers. Earn 10% daily automatically every 24 hours.</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="plans-container"></div>
@@ -402,7 +406,7 @@
                                         <p class="text-xs text-slate-500">Target: ₦500,000 · Current: ₦50,000</p>
                                     </div>
                                     <span class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">10%</span>
-                                </div>
+                                </div >
                             </div>
                         </div>
                     </div>
@@ -427,20 +431,40 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-emerald-800/60">
                             <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
-                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 1 Commission</span>
-                                <div class="text-2xl font-bold mt-1">10%</div>
-                                <p class="text-[11px] text-emerald-200/80 mt-1">Direct invitee investment activation.</p>
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Total Team Deposit</span>
+                                <div class="text-2xl font-bold mt-1" id="stat-team-deposit">₦0.00</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Combined capital of invited downlines.</p>
                             </div>
                             <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
-                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 2 Commission</span>
-                                <div class="text-2xl font-bold mt-1">3%</div>
-                                <p class="text-[11px] text-emerald-200/80 mt-1">Second-tier invitee investment activation.</p>
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Total Referral Earned</span>
+                                <div class="text-2xl font-bold mt-1" id="stat-team-earnings">₦0.00</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Commissions paid to your wallet.</p>
                             </div>
                             <div class="bg-emerald-900/40 p-4 rounded-2xl border border-emerald-700/40">
-                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Level 3 Commission</span>
-                                <div class="text-2xl font-bold mt-1">1%</div>
-                                <p class="text-[11px] text-emerald-200/80 mt-1">Third-tier invitee investment activation.</p>
+                                <span class="text-xs text-amber-300 font-bold uppercase tracking-wider">Total Team Members</span>
+                                <div class="text-2xl font-bold mt-1" id="stat-team-count">0</div>
+                                <p class="text-[11px] text-emerald-200/80 mt-1">Registered invitees in your network.</p>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- REFERRAL DOWNLINE TABLE -->
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                        <h4 class="font-serif font-bold text-lg text-slate-900">Your Referral Downline & Earnings Breakdown</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4">Member Name & Email</th>
+                                        <th class="p-4">Registration Date</th>
+                                        <th class="p-4">Total Invested</th>
+                                        <th class="p-4">Commission Earned By You</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="referral-downlines-tbody" class="divide-y divide-slate-100">
+                                    <tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">No referral downlines yet. Share your link to start earning!</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -461,7 +485,7 @@
                                 <select id="support-category" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white font-medium">
                                     <option>UBA Deposit & Bonus Inquiry</option>
                                     <option>Withdrawal & Fee Inquiry</option>
-                                    <option>10% Daily Return & 24-Day Cycle</option>
+                                    <option>10% Daily Return & 24-Hour Cycle</option>
                                     <option>Account Security</option>
                                 </select>
                             </div>
@@ -605,6 +629,32 @@
     </div>
 
     <!-- MODALS -->
+    <div id="modal-bank" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif font-bold text-2xl text-slate-900">Set Withdrawal Bank Account</h3>
+                <button onclick="closeModal('modal-bank')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Bank Name</label>
+                    <input type="text" id="user-bank-name" placeholder="e.g. UBA, GTBank, Opay, Access" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Account Number (10 Digits)</label>
+                    <input type="text" id="user-bank-num" placeholder="e.g. 2231165369" maxlength="10" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Account Holder Name</label>
+                    <input type="text" id="user-bank-holder" placeholder="e.g. Olalekan Ogunsola" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold">
+                </div>
+                <button onclick="saveUserBankAccount()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
+                    Save Bank Account <i class="fa-solid fa-check ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-deposit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
             <div class="flex justify-between items-center mb-6">
@@ -644,6 +694,13 @@
                 <button onclick="closeModal('modal-withdraw')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-4">
+                <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold block text-emerald-900">Payout Account:</span>
+                        <span id="withdraw-bank-preview" class="font-semibold text-emerald-800">Not Set (Click to set)</span>
+                    </div>
+                    <button onclick="openBankModal()" class="px-3 py-1.5 bg-emerald-700 text-white rounded-xl font-bold text-xs hover:bg-emerald-800 transition">Change</button>
+                </div>
                 <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
                     <span class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Withdrawal Notice</span>
                     <p>Minimum withdrawal is <strong class="label-min-wit">₦1,000</strong>. A <span id="label-fee-pct">15</span>% platform fee applies upon Admin approval.</p>
@@ -673,7 +730,7 @@
             <div class="space-y-4">
                 <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
                     <span class="font-bold block mb-1">Plan Yield & Cycle:</span>
-                    <span class="text-base font-bold text-emerald-800" id="invest-modal-subtitle">10% Daily Auto Return for 24 Days</span>
+                    <span class="text-base font-bold text-emerald-800" id="invest-modal-subtitle">10% Daily Auto Return (Every 24h) for 24 Days</span>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Investment Amount (₦)</label>
