@@ -3,34 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KUDIVA — Wealth, With Clarity (UBA & Supabase Secure)</title>
-    <!-- Tailwind CSS for modern responsive layout -->
+    <title>KUDIVA — Wealth, With Clarity</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Editorial Serif + Clean Sans -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        kudiva: {
-                            dark: '#0d1914',
-                            sidebar: '#0b1612',
-                            card: '#13271f',
-                            emerald: '#173526',
-                            mint: '#c2e3c8',
-                            lightmint: '#eaf4ec',
-                            accent: '#234e38',
-                            muted: '#6b8277',
-                            border: '#dcebe0'
-                        }
+                        kudiva: { dark: '#0d1914', sidebar: '#0b1612', card: '#13271f', emerald: '#173526', mint: '#c2e3c8' }
                     },
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        serif: ['"Playfair Display"', 'serif']
-                    }
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], serif: ['"Playfair Display"', 'serif'] }
                 }
             }
         }
@@ -47,25 +31,24 @@
         .admin-tab-content.active { display: block; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-[#f7faf8] text-slate-800 antialiased selection:bg-emerald-200 selection:text-emerald-900">
+<body class="min-h-screen flex flex-col bg-[#f7faf8] text-slate-800 antialiased">
 
-    <!-- AUTHENTICATION & ONBOARDING MODAL -->
-    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <!-- AUTHENTICATION MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto">
             <div class="bg-[#0d1914] p-6 text-white relative">
                 <div class="absolute top-4 right-4 bg-emerald-900/60 text-emerald-300 text-xs px-2.5 py-1 rounded-full font-medium border border-emerald-700/50">
-                    <i class="fa-solid fa-shield-halved mr-1"></i> UBA & Supabase Secure
+                    <i class="fa-solid fa-shield-halved mr-1"></i> Secure UBA Vault
                 </div>
                 <div class="flex items-center space-x-2.5 mb-3">
                     <div class="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-lg font-serif">K</div>
                     <span class="text-xl font-bold tracking-wider font-serif">KUDIVA</span>
                 </div>
                 <h2 class="text-2xl font-serif font-bold">Wealth, With Clarity</h2>
-                <p class="text-emerald-200/80 text-sm mt-1">Register your account, fund via UBA, and earn 10% daily returns.</p>
+                <p class="text-emerald-200/80 text-sm mt-1">Sign in or create your account to manage your wealth.</p>
             </div>
             
             <div class="p-6">
-                <!-- Toggle Tabs -->
                 <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
                     <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition">Sign In</button>
                     <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition">Create Account</button>
@@ -75,13 +58,13 @@
                 <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
-                        <input type="email" id="login-email" required placeholder="e.g. omoopeola1@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                        <input type="email" id="login-email" required placeholder="e.g. omoopeola1@gmail.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password / PIN</label>
-                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
-                    <button type="submit" class="w-full py-3 bg-[#0d1914] text-white font-semibold rounded-xl hover:bg-emerald-950 transition shadow-lg shadow-emerald-950/20 text-sm mt-2">
+                    <button type="submit" class="w-full py-3.5 bg-[#0d1914] text-white font-semibold rounded-xl hover:bg-emerald-950 transition shadow-lg text-sm mt-2">
                         Access Workspace <i class="fa-solid fa-arrow-right ml-2"></i>
                     </button>
                 </form>
@@ -90,15 +73,15 @@
                 <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
-                        <input type="text" id="reg-name" required placeholder="e.g. Olalekan Ogunsola" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                        <input type="text" id="reg-name" required placeholder="e.g. Olalekan Ogunsola" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address (Use omoopeola1@gmail.com for Admin)</label>
-                        <input type="email" id="reg-email" required placeholder="e.g. omoopeola1@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
+                        <input type="email" id="reg-email" required placeholder="e.g. user@example.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Linked Deposit Bank</label>
-                        <select id="reg-bank" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm bg-white font-medium text-emerald-950">
+                        <select id="reg-bank" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm bg-white font-medium text-emerald-950">
                             <option value="UBA Nigeria">United Bank for Africa (UBA)</option>
                             <option value="GTBank">Guaranty Trust Bank (GTB)</option>
                             <option value="Zenith Bank">Zenith Bank Plc</option>
@@ -107,39 +90,41 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Account Number (10 digits)</label>
-                        <input type="text" id="reg-accno" required maxlength="10" placeholder="2084920194" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-mono">
+                        <input type="text" id="reg-accno" required maxlength="10" placeholder="2084920194" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
-                        <input type="password" id="reg-password" required placeholder="Create secure password" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
+                        <input type="password" id="reg-password" required placeholder="Create secure password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm">
                     </div>
-                    <button type="submit" class="w-full py-3 bg-emerald-700 text-white font-semibold rounded-xl hover:bg-emerald-800 transition shadow-lg shadow-emerald-700/20 text-sm mt-2">
-                        Register Account & Get UBA Wallet <i class="fa-solid fa-wallet ml-2"></i>
+                    <button type="submit" class="w-full py-3.5 bg-emerald-700 text-white font-semibold rounded-xl hover:bg-emerald-800 transition shadow-lg text-sm mt-2">
+                        Create Account & UBA Wallet <i class="fa-solid fa-wallet ml-2"></i>
                     </button>
                 </form>
-
-                <div class="mt-6 pt-4 border-t border-slate-100 text-center">
-                    <p class="text-xs text-slate-400">Supabase DB: <span class="font-mono text-[10px]">https://hbleacgjtfkvjdzchjov.supabase.co</span></p>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- MAIN APP WRAPPER -->
-    <div id="app-wrapper" class="flex h-screen overflow-hidden opacity-40 pointer-events-none transition duration-300">
+    <div id="app-wrapper" class="flex h-screen overflow-hidden opacity-40 pointer-events-none transition duration-300 relative">
         
+        <!-- MOBILE OVERLAY BACKDROP -->
+        <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
         <!-- SIDEBAR -->
-        <aside id="user-sidebar" class="w-72 bg-[#0b1612] text-slate-300 flex flex-col justify-between border-r border-[#173526] shrink-0 select-none">
+        <aside id="user-sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-[#0b1612] text-slate-300 flex flex-col justify-between border-r border-[#173526] shrink-0 select-none transform -translate-x-full md:translate-x-0 transition duration-200">
             <div>
-                <div class="p-6 flex items-center space-x-3 border-b border-[#173526]">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-xl font-serif shadow-md">K</div>
-                    <div>
-                        <h1 class="text-white font-serif font-bold text-lg tracking-wider">KUDIVA</h1>
-                        <p class="text-[10px] text-emerald-400 tracking-widest uppercase font-semibold">Wealth, With Clarity</p>
+                <div class="p-6 flex items-center justify-between border-b border-[#173526]">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-bold text-xl font-serif shadow-md">K</div>
+                        <div>
+                            <h1 class="text-white font-serif font-bold text-lg tracking-wider">KUDIVA</h1>
+                            <p class="text-[10px] text-emerald-400 tracking-widest uppercase font-semibold">Wealth, With Clarity</p>
+                        </div>
                     </div>
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
 
-                <div class="px-4 py-6">
+                <div class="px-4 py-6 overflow-y-auto">
                     <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 px-3 mb-3">Your Space</p>
                     <nav class="space-y-1.5" id="nav-menu">
                         <button onclick="switchTab('overview')" data-tab="overview" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition bg-emerald-950 text-white shadow-sm">
@@ -170,7 +155,8 @@
                             <i class="fa-solid fa-circle-question w-5 text-emerald-400"></i>
                             <span>Help & support</span>
                         </button>
-                        <!-- Admin Dashboard Nav Button (Only shown for omoopeola1@gmail.com) -->
+                        
+                        <!-- Admin Dashboard Nav Button (Only visible for omoopeola1@gmail.com) -->
                         <div id="admin-nav-container" class="hidden pt-4 border-t border-emerald-900/50 mt-4">
                             <button onclick="switchTab('admin-dashboard')" data-tab="admin-dashboard" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30">
                                 <i class="fa-solid fa-gauge-high w-5 text-amber-400"></i>
@@ -195,22 +181,24 @@
         <!-- MAIN CONTENT AREA -->
         <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
             
-            <header class="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                <div class="flex items-center space-x-2 text-sm text-slate-500 font-medium">
-                    <span id="workspace-title-label">Workspace</span>
-                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-                    <span id="current-breadcrumb" class="text-slate-900 font-semibold">Your wealth, clearly understood</span>
+            <header class="h-20 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="hidden sm:flex items-center space-x-2 text-sm text-slate-500 font-medium">
+                        <span id="workspace-title-label">Workspace</span>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                        <span id="current-breadcrumb" class="text-slate-900 font-semibold">Your wealth, clearly understood</span>
+                    </div>
                 </div>
 
-                <div class="flex items-center space-x-4">
-                    <button onclick="triggerDailyReturnSimulation()" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl text-xs font-bold transition flex items-center space-x-2 border border-emerald-300">
+                <div class="flex items-center space-x-3">
+                    <button onclick="triggerDailyReturnSimulation()" class="px-3 md:px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl text-xs font-bold transition flex items-center space-x-2 border border-emerald-300">
                         <i class="fa-solid fa-bolt text-amber-500 animate-bounce"></i>
-                        <span>Accrue 10% Daily Return</span>
+                        <span class="hidden sm:inline">Accrue 10% Daily Return</span>
+                        <span class="sm:hidden">10% Daily</span>
                     </button>
-                    <div class="hidden md:flex items-center space-x-2 bg-slate-100 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-700">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Nigeria · NGN (UBA)</span>
-                    </div>
                     <div class="flex items-center space-x-3 pl-2 border-l border-slate-200">
                         <div id="user-initials-badge" class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-200">OO</div>
                         <div class="hidden md:block text-left">
@@ -224,7 +212,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 p-8 max-w-7xl w-full mx-auto pb-20">
+            <main class="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto pb-20">
                 
                 <!-- 1. OVERVIEW -->
                 <div id="view-overview" class="tab-content active space-y-8 animate-in fade-in duration-200">
@@ -234,13 +222,13 @@
                         <p class="text-slate-500 text-sm mt-1">A thoughtful view of your financial life starts here.</p>
                     </div>
 
-                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-8 text-white relative overflow-hidden shadow-xl flex flex-col md:flex-row items-center justify-between">
+                    <div class="bg-gradient-to-br from-[#173526] to-[#0d1914] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl flex flex-col md:flex-row items-center justify-between">
                         <div class="relative z-10 max-w-xl">
                             <div class="inline-flex items-center space-x-2 bg-emerald-900/60 text-emerald-300 px-3 py-1 rounded-full text-xs font-medium mb-4 border border-emerald-700/40">
                                 <i class="fa-solid fa-sparkles text-amber-300"></i>
                                 <span>10% DAILY RETURN YIELD ENGINE</span>
                             </div>
-                            <h3 id="welcome-heading" class="text-3xl md:text-4xl font-serif font-bold mb-3">Welcome back, Ola</h3>
+                            <h3 id="welcome-heading" class="text-2xl md:text-4xl font-serif font-bold mb-3">Welcome back, Ola</h3>
                             <p class="text-emerald-100/80 text-sm leading-relaxed mb-6">
                                 Fund your UBA account, invest in 10% daily yield portfolios, and withdraw earnings anytime (15% platform withdrawal fee applies).
                             </p>
@@ -262,15 +250,15 @@
                         </div>
                     </div>
 
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between text-xs text-emerald-900">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-emerald-900">
                         <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold"><i class="fa-solid fa-university"></i></div>
+                            <div class="w-8 h-8 rounded-full bg-emerald-200 text-emerald-800 flex items-center justify-center font-bold shrink-0"><i class="fa-solid fa-university"></i></div>
                             <div>
                                 <span class="font-bold">Official UBA Receiving Account: <span class="font-mono text-emerald-950">1029384756 (KUDIVA WEALTH LTD)</span></span>
                                 <p class="text-emerald-700">All direct bank transfers submitted here are reviewed and approved by Admin within 10 minutes.</p>
                             </div>
                         </div>
-                        <button onclick="openDepositModal()" class="px-4 py-2 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 transition shadow">Deposit Funds</button>
+                        <button onclick="openDepositModal()" class="px-4 py-2 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 transition shadow shrink-0">Deposit Funds</button>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -586,27 +574,27 @@
                     </div>
                 </div>
 
-                <!-- ================= ADMIN CONTROL CENTER VIEW ================= -->
+                <!-- ================= ADMIN CONTROL CENTER ================= -->
                 <div id="view-admin-dashboard" class="tab-content space-y-8">
-                    <div class="bg-emerald-950 p-6 rounded-3xl text-white flex items-center justify-between shadow-lg">
+                    <div class="bg-emerald-950 p-6 rounded-3xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
                         <div>
                             <span class="text-xs font-bold uppercase tracking-widest text-amber-400">ADMIN CONTROL CENTER (RESTRICTED TO OMOOPEOLA1@GMAIL.COM)</span>
-                            <h2 class="text-3xl font-serif font-bold">Platform Management Dashboard</h2>
+                            <h2 class="text-2xl md:text-3xl font-serif font-bold">Platform Management Dashboard</h2>
                             <p class="text-emerald-200 text-xs mt-1">Approve UBA deposits/withdrawals, manage users, and respond to support tickets.</p>
                         </div>
-                        <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition">
+                        <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition shrink-0">
                             <i class="fa-solid fa-right-from-bracket mr-1"></i> Exit Admin
                         </button>
                     </div>
 
-                    <div class="flex space-x-2 border-b border-slate-200 pb-4">
-                        <button onclick="switchAdminTab('approvals')" id="adm-btn-approvals" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow">
+                    <div class="flex overflow-x-auto space-x-2 border-b border-slate-200 pb-4">
+                        <button onclick="switchAdminTab('approvals')" id="adm-btn-approvals" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0">
                             Approval Queue (<span id="count-pending-approvals">0</span>)
                         </button>
-                        <button onclick="switchAdminTab('users')" id="adm-btn-users" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition">
+                        <button onclick="switchAdminTab('users')" id="adm-btn-users" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0">
                             Manage Users (<span id="count-total-users">0</span>)
                         </button>
-                        <button onclick="switchAdminTab('tickets')" id="adm-btn-tickets" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition">
+                        <button onclick="switchAdminTab('tickets')" id="adm-btn-tickets" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0">
                             Support Tickets (<span id="count-support-tickets">0</span>)
                         </button>
                     </div>
@@ -615,7 +603,7 @@
                         <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
                             <h3 class="font-serif font-bold text-lg text-slate-900 mb-4">Pending Deposit & Withdrawal Requests</h3>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm">
+                                <table class="w-full text-left text-sm min-w-[600px]">
                                     <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
                                         <tr>
                                             <th class="p-4">User Email</th>
@@ -636,14 +624,14 @@
 
                     <div id="admin-sub-users" class="admin-tab-content space-y-6">
                         <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                            <div class="flex justify-between items-center mb-4">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <h3 class="font-serif font-bold text-lg text-slate-900">Registered Platform Users & Wallets</h3>
                                 <button onclick="adminTriggerAllDailyYields()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition">
                                     <i class="fa-solid fa-bolt mr-1"></i> Force 10% Daily Yield for All Users
                                 </button>
                             </div>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm">
+                                <table class="w-full text-left text-sm min-w-[700px]">
                                     <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200">
                                         <tr>
                                             <th class="p-4">Name & Email</th>
@@ -670,7 +658,6 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
 
             </main>
@@ -679,7 +666,7 @@
 
     <!-- MODALS -->
     <div id="modal-deposit" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-serif font-bold text-2xl text-slate-900">Fund via UBA Transfer</h3>
                 <button onclick="closeModal('modal-deposit')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
@@ -699,7 +686,7 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Your UBA Transfer Reference / Teller No.</label>
                     <input type="text" id="deposit-ref" placeholder="e.g. TRF-UBA-98214" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono">
                 </div>
-                <button onclick="submitDepositRequest()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg shadow-emerald-700/20 mt-2">
+                <button onclick="submitDepositRequest()" class="w-full py-3.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition shadow-lg mt-2">
                     Submit for Admin Approval <i class="fa-solid fa-paper-plane ml-2"></i>
                 </button>
             </div>
@@ -707,7 +694,7 @@
     </div>
 
     <div id="modal-withdraw" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-serif font-bold text-2xl text-slate-900">Withdraw to Bank</h3>
                 <button onclick="closeModal('modal-withdraw')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
@@ -734,7 +721,7 @@
     </div>
 
     <div id="modal-invest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-serif font-bold text-2xl text-slate-900" id="invest-title">Allocate 10% Daily Investment</h3>
                 <button onclick="closeModal('modal-invest')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
@@ -777,7 +764,6 @@
         </div>
     </div>
 
-    <!-- Link external app.js script -->
     <script src="app.js"></script>
 </body>
 </html>
