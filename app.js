@@ -1,7 +1,81 @@
 let currentUser = null;
 let isAdmin = false;
-let selectedProductForInvest = { name: '', rate: 10.0 };
+let selectedPlanForInvest = null;
 let privacyMask = false;
+
+// 10 Distinct Investment Plans (Starting from ₦10,000 upward with 24-day cycles)
+const INVESTMENT_PLANS = [
+    {
+        id: 1,
+        name: "UBA Micro Treasury Alpha",
+        minAmount: 10000,
+        image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 1 (Entry Tier)"
+    },
+    {
+        id: 2,
+        name: "Nigeria Sovereign Growth Yield",
+        minAmount: 25000,
+        image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 2 (Eligible for ₦2k Bonus)"
+    },
+    {
+        id: 3,
+        name: "Lagos Commercial Real Estate Syndicate",
+        minAmount: 50000,
+        image: "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 3 (Balanced)"
+    },
+    {
+        id: 4,
+        name: "Pan-African Fintech Venture Fund",
+        minAmount: 100000,
+        image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 4 (Growth)"
+    },
+    {
+        id: 5,
+        name: "West Africa Agro-Export Trust",
+        minAmount: 250000,
+        image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 5 (Commodities)"
+    },
+    {
+        id: 6,
+        name: "Abuja Prime Infrastructure Bond",
+        minAmount: 500000,
+        image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 6 (Infrastructure)"
+    },
+    {
+        id: 7,
+        name: "Kudiva Dollar-Hedge Bluechip Pool",
+        minAmount: 1000000,
+        image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 7 (High Yield)"
+    },
+    {
+        id: 8,
+        name: "Continental Energy & Power Fund",
+        minAmount: 2500000,
+        image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 8 (Energy)"
+    },
+    {
+        id: 9,
+        name: "Executive Private Wealth Syndicate",
+        minAmount: 5000000,
+        image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 9 (Executive)"
+    },
+    {
+        id: 10,
+        name: "Sovereign Apex Elite Portfolio",
+        minAmount: 10000000,
+        image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80",
+        tag: "Plan 10 (Apex Tier)"
+    }
+];
 
 function getDB() {
     let db = localStorage.getItem('kudiva_master_db');
@@ -12,7 +86,7 @@ function getDB() {
                     name: 'Ola Omoope',
                     email: 'omoopeola1@gmail.com',
                     bank: 'UBA Nigeria',
-                    accountNumber: '2084920194',
+                    accountNumber: '2231165369',
                     refCode: 'KUDIVA-ADMIN',
                     uplineRef: '',
                     balance: 150000.00,
@@ -21,7 +95,7 @@ function getDB() {
                     hasFunded: true,
                     hasActivatedInvestment: true,
                     investments: [
-                        { name: 'UBA Treasury Prime Growth', rate: 10.0, amount: 50000.00, date: '14 Nov 2026' }
+                        { name: 'UBA Micro Treasury Alpha', rate: 10.0, amount: 50000.00, cycleDays: 24, date: '14 Nov 2026' }
                     ],
                     transactions: [
                         { desc: 'UBA Direct Deposit (+ Bonus)', ref: 'TRF-UBA-98214', date: '14 Nov 2026', type: 'Deposit', amount: '₦150,000.00', status: 'Success' }
@@ -56,6 +130,7 @@ window.addEventListener('DOMContentLoaded', () => {
         isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
         unlockApp();
     }
+    renderExplorePlans();
 });
 
 function switchAuthTab(tab) {
@@ -160,6 +235,43 @@ function toggleMobileSidebar() {
     backdrop.classList.toggle('hidden');
 }
 
+function renderExplorePlans() {
+    const container = document.getElementById('plans-container');
+    if (!container) return;
+
+    container.innerHTML = INVESTMENT_PLANS.map(plan => {
+        const dailyIncome = plan.minAmount * 0.10;
+        const totalIncome24Days = dailyIncome * 24;
+
+        return `
+            <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
+                <div>
+                    <div class="h-40 overflow-hidden relative">
+                        <img src="${plan.image}" alt="${plan.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                        <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-700 text-white text-[10px] font-bold rounded-lg">${plan.tag}</span>
+                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full">10% Daily</span>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                            <div class="flex justify-between text-slate-500"><span>Minimum Capital:</span><strong class="text-slate-900">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
+                            <div class="flex justify-between text-slate-500"><span>Daily Income (10%):</span><strong class="text-emerald-700">₦${Number(dailyIncome).toLocaleString()}</strong></div>
+                            <div class="flex justify-between text-slate-500 pt-1 border-t border-slate-200"><span>Total Return (24 Days):</span><strong class="text-slate-900 font-bold">₦${Number(totalIncome24Days).toLocaleString()}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 pt-0">
+                    <button onclick='openInvestModal(${JSON.stringify(plan)})' class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
+                        <span>Invest Plan (${plan.tag.split(' ')[0]} ${plan.tag.split(' ')[1]})</span>
+                        <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 function loadUserData() {
     const db = getDB();
     if (!currentUser || !db.users[currentUser.email]) return;
@@ -214,16 +326,16 @@ function updateUserUI() {
 
     const holdingsList = document.getElementById('portfolio-holdings-list');
     if (currentUser.investments.length === 0) {
-        holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore products to earn 10% daily.</div>`;
+        holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore our 10 plans to earn daily for 24 days.</div>`;
     } else {
         holdingsList.innerHTML = currentUser.investments.map((inv, idx) => `
             <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
                 <div>
                     <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
-                    <p class="text-xs text-slate-500">Rate: ${inv.rate}% Daily · Principal: ₦${Number(inv.amount).toLocaleString()}</p>
+                    <p class="text-xs text-slate-500">Cycle: 24 Days · Principal: ₦${Number(inv.amount).toLocaleString()} · Daily: ₦${Number(inv.amount * 0.10).toLocaleString()}</p>
                 </div>
                 <div class="text-right">
-                    <div class="font-bold text-emerald-700">+ 10% Daily Yield Active</div>
+                    <div class="font-bold text-emerald-700">+ 10% Daily Active</div>
                     <button onclick="harvestYield(${idx})" class="text-[11px] bg-emerald-700 text-white px-3 py-1 rounded-lg mt-1 font-bold hover:bg-emerald-800 transition">Harvest Yield to Wallet</button>
                 </div>
             </div>
@@ -297,7 +409,7 @@ function switchTab(tabId) {
     const titles = {
         overview: 'Your wealth, clearly understood',
         portfolio: 'My portfolio',
-        explore: 'Explore investments (10% Daily)',
+        explore: 'Explore 10 Investment Plans',
         transactions: 'Transactions & Approvals',
         planning: 'Financial planning',
         rewards: 'Rewards & referrals',
@@ -330,9 +442,11 @@ function openWithdrawModal() { document.getElementById('modal-withdraw').classLi
 function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-function openInvestModal(productName, rate) {
-    selectedProductForInvest = { name: productName, rate: rate };
-    document.getElementById('invest-title').innerText = `Invest in ${productName}`;
+function openInvestModal(plan) {
+    selectedPlanForInvest = plan;
+    document.getElementById('invest-modal-title').innerText = `Invest in ${plan.name}`;
+    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily for 24 Days`;
+    document.getElementById('invest-amount').value = plan.minAmount;
     document.getElementById('modal-invest').classList.remove('hidden');
 }
 
@@ -433,28 +547,35 @@ function submitWithdrawRequest() {
 
 function executeInvestment() {
     const amount = parseFloat(document.getElementById('invest-amount').value);
-    if (!amount || amount <= 0) return alert('Enter valid amount');
-    if (amount > currentUser.balance) return alert('Insufficient available cash in wallet');
+    if (!selectedPlanForInvest) return;
+    if (!amount || amount < selectedPlanForInvest.minAmount) {
+        alert(`Minimum investment for ${selectedPlanForInvest.name} is ₦${Number(selectedPlanForInvest.minAmount).toLocaleString()}`);
+        return;
+    }
+    if (amount > currentUser.balance) {
+        alert('Insufficient available cash in wallet. Please deposit first.');
+        return;
+    }
 
     currentUser.balance -= amount;
     currentUser.invested += amount;
     currentUser.investments.push({
-        name: selectedProductForInvest.name,
-        rate: selectedProductForInvest.rate,
+        name: selectedPlanForInvest.name,
+        rate: 10.0,
         amount: amount,
+        cycleDays: 24,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
     currentUser.transactions.unshift({
-        desc: `Investment: ${selectedProductForInvest.name}`,
+        desc: `Investment: ${selectedPlanForInvest.name}`,
         ref: 'KDV-INV-' + Math.floor(100000 + Math.random() * 900000),
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         type: 'Investment',
         amount: '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        status: 'Active (10% Daily)'
+        status: 'Active (10% Daily for 24 Days)'
     });
 
-    // Check if this is the first investment activation to trigger multi-tier referral commissions
     if (!currentUser.hasActivatedInvestment) {
         currentUser.hasActivatedInvestment = true;
         distributeReferralCommissions(amount);
@@ -462,14 +583,13 @@ function executeInvestment() {
 
     persistUserData();
     closeModal('modal-invest');
-    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedProductForInvest.name} (10% daily return active)!`);
+    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name} (10% daily for 24 days active)!`);
 }
 
 function distributeReferralCommissions(investAmount) {
     const db = getDB();
     let currentUplineCode = currentUser.uplineRef;
 
-    // Level 1 (10%)
     if (currentUplineCode) {
         let l1UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === currentUplineCode);
         if (l1UserEmail && l1UserEmail !== currentUser.email) {
@@ -484,7 +604,6 @@ function distributeReferralCommissions(investAmount) {
                 status: 'Success'
             });
 
-            // Level 2 (3%)
             let l2Code = db.users[l1UserEmail].uplineRef;
             if (l2Code) {
                 let l2UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l2Code);
@@ -500,7 +619,6 @@ function distributeReferralCommissions(investAmount) {
                         status: 'Success'
                     });
 
-                    // Level 3 (1%)
                     let l3Code = db.users[l2UserEmail].uplineRef;
                     if (l3Code) {
                         let l3UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l3Code);
@@ -806,7 +924,7 @@ function adminSendReply(idx) {
 
 function calculateCompound() {
     const p = parseFloat(document.getElementById('calc-principal').value) || 0;
-    const days = parseInt(document.getElementById('calc-days').value) || 10;
+    const days = parseInt(document.getElementById('calc-days').value) || 24;
     document.getElementById('days-display').innerText = `${days} Days`;
     const total = p * Math.pow(1.10, days);
     document.getElementById('calc-result').innerText = '₦' + Math.round(total).toLocaleString('en-NG');
