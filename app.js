@@ -13,10 +13,13 @@ function getDB() {
                     email: 'omoopeola1@gmail.com',
                     bank: 'UBA Nigeria',
                     accountNumber: '2084920194',
+                    refCode: 'KUDIVA-ADMIN',
+                    uplineRef: '',
                     balance: 150000.00,
                     invested: 50000.00,
                     dailyYield: 12500.00,
                     hasFunded: true,
+                    hasActivatedInvestment: true,
                     investments: [
                         { name: 'UBA Treasury Prime Growth', rate: 10.0, amount: 50000.00, date: '14 Nov 2026' }
                     ],
@@ -80,8 +83,7 @@ function handleRegister(e) {
     e.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim().toLowerCase();
-    const bank = document.getElementById('reg-bank').value;
-    const accountNumber = document.getElementById('reg-accno').value.trim();
+    const refCodeInput = document.getElementById('reg-refcode').value.trim().toUpperCase();
 
     const db = getDB();
     if (db.users[email]) {
@@ -89,15 +91,20 @@ function handleRegister(e) {
         return;
     }
 
+    const generatedRef = 'KUDIVA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
     db.users[email] = {
         name,
         email,
-        bank,
-        accountNumber,
+        bank: 'UBA Nigeria',
+        accountNumber: '2231165369',
+        refCode: generatedRef,
+        uplineRef: refCodeInput || '',
         balance: 0.00,
         invested: 0.00,
         dailyYield: 0.00,
         hasFunded: false,
+        hasActivatedInvestment: false,
         investments: [],
         transactions: [],
         goals: [{ name: 'Initial Savings Target', target: 200000, current: 0 }],
@@ -163,6 +170,7 @@ function loadUserData() {
     document.getElementById('topbar-username').innerText = currentUser.name;
     document.getElementById('topbar-bankinfo').innerText = `${currentUser.bank} • ${currentUser.accountNumber}`;
     document.getElementById('user-initials-badge').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('referral-code-display').innerText = currentUser.refCode || 'KUDIVA-LEKKXY26';
 
     updateUserUI();
 }
@@ -352,7 +360,7 @@ function submitDepositRequest() {
         email: currentUser.email,
         type: 'Deposit',
         amount: amount,
-        details: `UBA Ref: ${ref} (${!currentUser.hasFunded ? 'First Deposit Bonus Eligible' : 'Standard Deposit'})`,
+        details: `UBA Ref: ${ref}`,
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     });
 
@@ -420,7 +428,7 @@ function submitWithdrawRequest() {
     saveDB(db);
     persistUserData();
     closeModal('modal-withdraw');
-    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your ${currentUser.bank} account upon Admin approval (15% fee applied).`);
+    alert(`Withdrawal request submitted! ₦${net.toLocaleString()} will be sent to your UBA account upon Admin approval (15% fee applied).`);
 }
 
 function executeInvestment() {
@@ -446,9 +454,74 @@ function executeInvestment() {
         status: 'Active (10% Daily)'
     });
 
+    // Check if this is the first investment activation to trigger multi-tier referral commissions
+    if (!currentUser.hasActivatedInvestment) {
+        currentUser.hasActivatedInvestment = true;
+        distributeReferralCommissions(amount);
+    }
+
     persistUserData();
     closeModal('modal-invest');
     alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedProductForInvest.name} (10% daily return active)!`);
+}
+
+function distributeReferralCommissions(investAmount) {
+    const db = getDB();
+    let currentUplineCode = currentUser.uplineRef;
+
+    // Level 1 (10%)
+    if (currentUplineCode) {
+        let l1UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === currentUplineCode);
+        if (l1UserEmail && l1UserEmail !== currentUser.email) {
+            let comm1 = investAmount * 0.10;
+            db.users[l1UserEmail].balance += comm1;
+            db.users[l1UserEmail].transactions.unshift({
+                desc: `Referral Commission (Level 1 - 10% from ${currentUser.name})`,
+                ref: 'REF-L1-' + Math.floor(1000 + Math.random() * 9000),
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                type: 'Commission',
+                amount: '₦' + comm1.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                status: 'Success'
+            });
+
+            // Level 2 (3%)
+            let l2Code = db.users[l1UserEmail].uplineRef;
+            if (l2Code) {
+                let l2UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l2Code);
+                if (l2UserEmail && l2UserEmail !== currentUser.email) {
+                    let comm2 = investAmount * 0.03;
+                    db.users[l2UserEmail].balance += comm2;
+                    db.users[l2UserEmail].transactions.unshift({
+                        desc: `Referral Commission (Level 2 - 3%)`,
+                        ref: 'REF-L2-' + Math.floor(1000 + Math.random() * 9000),
+                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                        type: 'Commission',
+                        amount: '₦' + comm2.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                        status: 'Success'
+                    });
+
+                    // Level 3 (1%)
+                    let l3Code = db.users[l2UserEmail].uplineRef;
+                    if (l3Code) {
+                        let l3UserEmail = Object.keys(db.users).find(email => db.users[email].refCode === l3Code);
+                        if (l3UserEmail && l3UserEmail !== currentUser.email) {
+                            let comm3 = investAmount * 0.01;
+                            db.users[l3UserEmail].balance += comm3;
+                            db.users[l3UserEmail].transactions.unshift({
+                                desc: `Referral Commission (Level 3 - 1%)`,
+                                ref: 'REF-L3-' + Math.floor(1000 + Math.random() * 9000),
+                                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                                type: 'Commission',
+                                amount: '₦' + comm3.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                                status: 'Success'
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    saveDB(db);
 }
 
 function triggerDailyReturnSimulation() {
@@ -523,8 +596,8 @@ function togglePrivacy() {
 }
 
 function copyReferralCode() {
-    navigator.clipboard.writeText('KUDIVA-BONUS2026');
-    alert('Recharge bonus code copied to clipboard!');
+    navigator.clipboard.writeText(currentUser.refCode || 'KUDIVA-LEKKXY26');
+    alert('Your referral code was copied to clipboard!');
 }
 
 function loadAdminDashboard() {
@@ -568,8 +641,8 @@ function loadAdminDashboard() {
                         <div class="text-xs text-slate-500">${u.email}</div>
                     </td>
                     <td class="p-4 text-xs">
-                        <div class="font-bold">${u.bank}</div>
-                        <div class="font-mono text-slate-500">${u.accountNumber}</div>
+                        <div class="font-mono font-bold text-emerald-800">${u.refCode || 'N/A'}</div>
+                        <div class="text-slate-500">Upline: ${u.uplineRef || 'None'}</div>
                     </td>
                     <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
                     <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
@@ -612,10 +685,8 @@ function adminApprove(index) {
             let finalCredit = item.amount;
             let bonusAwarded = 0;
 
-            // Check first-time funding bonus
             if (!targetUser.hasFunded) {
                 targetUser.hasFunded = true;
-                // If amount is equivalent to Plan 2 upward (e.g. >= 50,000 or custom threshold), grant ₦2,000 bonus, else ₦1,000
                 if (item.amount >= 50000) {
                     bonusAwarded = 2000;
                 } else {
