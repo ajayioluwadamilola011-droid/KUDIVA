@@ -54,11 +54,67 @@ window.addEventListener('DOMContentLoaded', async () => {
         currentUser = JSON.parse(activeSession);
         isAdmin = currentUser.email.toLowerCase() === 'omoopeola1@gmail.com';
         unlockApp();
+        setupRealtimeSync();
     }
     renderExplorePlans();
     runStrict24HourYieldDaemon();
     updateGlobalUIStrings();
 });
+
+// Setup Supabase Realtime Listeners for Live Updates
+function setupRealtimeSync() {
+    if (!supabaseClient || !currentUser) return;
+
+    supabaseClient
+        .channel('public-db-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', filter: `user_email=eq.${currentUser.email}` }, async () => {
+            await refreshUserDataFromSupabase();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `email=eq.${currentUser.email}` }, async () => {
+            await refreshUserDataFromSupabase();
+        })
+        .subscribe();
+}
+
+async function refreshUserDataFromSupabase() {
+    if (!currentUser) return;
+    if (currentUser.email.toLowerCase() === 'omoopeola1@gmail.com') return;
+
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('email', currentUser.email).single();
+    if (profile) {
+        currentUser.balance = parseFloat(profile.balance) || 0;
+        currentUser.invested = parseFloat(profile.invested) || 0;
+        currentUser.dailyYield = parseFloat(profile.daily_yield) || 0;
+        currentUser.hasFunded = profile.has_funded;
+        currentUser.hasActivatedInvestment = profile.has_activated_investment;
+    }
+
+    const { data: txs } = await supabaseClient.from('transactions').select('*').eq('user_email', currentUser.email).order('created_at', { ascending: false });
+    if (txs) {
+        currentUser.transactions = txs.map(t => ({
+            desc: t.description,
+            ref: t.reference,
+            date: new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+            type: t.type,
+            amount: t.amount,
+            status: t.status
+        }));
+    }
+
+    const { data: tickets } = await supabaseClient.from('support_tickets').select('*').eq('user_email', currentUser.email).order('created_at', { ascending: false });
+    if (tickets) {
+        currentUser.tickets = tickets.map(t => ({
+            id: t.id,
+            category: t.category,
+            msg: t.message,
+            reply: t.reply || '',
+            date: new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        }));
+    }
+
+    localStorage.setItem('kudiva_active_session', JSON.stringify(currentUser));
+    updateUserUI();
+}
 
 async function updateGlobalUIStrings() {
     const s = await getPlatformSettings();
@@ -173,9 +229,14 @@ async function handleLogin(e) {
                 tickets: []
             };
 
-            const { data: txs } = await supabaseClient.from('transactions').select('*').eq('user_email', email);
+            const { data: txs } = await supabaseClient.from('transactions').select('*').eq('user_email', email).order('created_at', { ascending: false });
             if (txs) {
                 currentUser.transactions = txs.map(t => ({ desc: t.description, ref: t.reference, date: new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), type: t.type, amount: t.amount, status: t.status }));
+            }
+
+            const { data: tickets } = await supabaseClient.from('support_tickets').select('*').eq('user_email', email).order('created_at', { ascending: false });
+            if (tickets) {
+                currentUser.tickets = tickets.map(t => ({ id: t.id, category: t.category, msg: t.message, reply: t.reply || '', date: new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }));
             }
 
             completeLogin();
@@ -238,6 +299,7 @@ function completeLogin() {
         adminNav.classList.add('hidden');
     }
 
+    setupRealtimeSync();
     switchTab('overview');
     loadUserData();
 }
@@ -258,6 +320,7 @@ function unlockApp() {
         adminNav.classList.add('hidden');
     }
 
+    setupRealtimeSync();
     switchTab('overview');
     loadUserData();
 }
@@ -308,6 +371,8 @@ function renderExplorePlans() {
 
 async function loadUserData() {
     if (!currentUser) return;
+    await refreshUserDataFromSupabase();
+
     const firstName = currentUser.name.split(' ')[0];
     document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
     document.getElementById('topbar-username').innerText = currentUser.name;
@@ -362,7 +427,7 @@ function updateUserUI() {
                 <td class="p-4 text-xs text-slate-500">${tx.date}</td>
                 <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">${tx.type}</span></td>
                 <td class="p-4 font-bold text-slate-900">${tx.amount}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' || tx.status.includes('Balance') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
+                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' || tx.status.includes('Balance') || tx.status.includes('Paid') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
             </tr>
         `).join('');
     }
@@ -817,13 +882,14 @@ async function submitSupportTicket() {
     const msg = document.getElementById('support-msg').value.trim();
     if (!msg) return alert('Enter your support message');
 
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const ticket = {
         id: Date.now(),
         email: currentUser.email,
         category,
         msg,
         reply: '',
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        date: dateStr
     };
 
     currentUser.tickets.unshift(ticket);
@@ -838,6 +904,7 @@ async function submitSupportTicket() {
     await persistUserData();
     document.getElementById('support-msg').value = '';
     alert('Support ticket submitted to Admin successfully!');
+    await refreshUserDataFromSupabase();
 }
 
 function togglePrivacy() {
