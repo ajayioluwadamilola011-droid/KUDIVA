@@ -12,16 +12,16 @@ let selectedPlanForInvest = null;
 let privacyMask = false;
 
 const INVESTMENT_PLANS = [
-    { id: 1, name: "UBA Micro Treasury Alpha", minAmount: 10000, image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80", tag: "Plan 1 (Entry Tier)" },
-    { id: 2, name: "Nigeria Sovereign Growth Yield", minAmount: 25000, image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80", tag: "Plan 2 (Eligible for Bonus)" },
-    { id: 3, name: "Lagos Commercial Real Estate Syndicate", minAmount: 50000, image: "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80", tag: "Plan 3 (Balanced)" },
-    { id: 4, name: "Pan-African Fintech Venture Fund", minAmount: 100000, image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80", tag: "Plan 4 (Growth)" },
-    { id: 5, name: "West Africa Agro-Export Trust", minAmount: 250000, image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80", tag: "Plan 5 (Commodities)" },
-    { id: 6, name: "Abuja Prime Infrastructure Bond", minAmount: 500000, image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80", tag: "Plan 6 (Infrastructure)" },
-    { id: 7, name: "Kudiva Dollar-Hedge Bluechip Pool", minAmount: 1000000, image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80", tag: "Plan 7 (High Yield)" },
-    { id: 8, name: "Continental Energy & Power Fund", minAmount: 2500000, image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80", tag: "Plan 8 (Energy)" },
-    { id: 9, name: "Executive Private Wealth Syndicate", minAmount: 5000000, image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80", tag: "Plan 9 (Executive)" },
-    { id: 10, name: "Sovereign Apex Elite Portfolio", minAmount: 10000000, image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80", tag: "Plan 10 (Apex Tier)" }
+    { id: 1, name: "UBA Micro Treasury Alpha", minAmount: 10000, image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80", tag: "Plan 1 · Entry Tier" },
+    { id: 2, name: "Nigeria Sovereign Growth Yield", minAmount: 25000, image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80", tag: "Plan 2 · Bonus Eligible" },
+    { id: 3, name: "Lagos Commercial Real Estate Syndicate", minAmount: 50000, image: "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80", tag: "Plan 3 · Balanced" },
+    { id: 4, name: "Pan-African Fintech Venture Fund", minAmount: 100000, image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80", tag: "Plan 4 · Growth" },
+    { id: 5, name: "West Africa Agro-Export Trust", minAmount: 250000, image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80", tag: "Plan 5 · Commodities" },
+    { id: 6, name: "Abuja Prime Infrastructure Bond", minAmount: 500000, image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80", tag: "Plan 6 · Infrastructure" },
+    { id: 7, name: "Kudiva Dollar-Hedge Bluechip Pool", minAmount: 1000000, image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80", tag: "Plan 7 · High Yield" },
+    { id: 8, name: "Continental Energy & Power Fund", minAmount: 2500000, image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80", tag: "Plan 8 · Energy" },
+    { id: 9, name: "Executive Private Wealth Syndicate", minAmount: 5000000, image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80", tag: "Plan 9 · Executive" },
+    { id: 10, name: "Sovereign Apex Elite Portfolio", minAmount: 10000000, image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80", tag: "Plan 10 · Apex Tier" }
 ];
 
 async function getPlatformSettings() {
@@ -41,6 +41,8 @@ async function getPlatformSettings() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+    renderExplorePlans();
+    
     const urlParams = new URLSearchParams(window.location.search);
     const refParam = urlParams.get('ref');
     if (refParam) {
@@ -56,12 +58,59 @@ window.addEventListener('DOMContentLoaded', async () => {
         unlockApp();
         setupRealtimeSync();
     }
-    renderExplorePlans();
+    
     runStrict24HourYieldDaemon();
     updateGlobalUIStrings();
 });
 
-// Setup Supabase Realtime Listeners for Live Updates
+// Render the 10 Investment Plans cleanly using data-id attributes to avoid inline JSON issues
+function renderExplorePlans() {
+    const container = document.getElementById('plans-container');
+    if (!container) return;
+
+    container.innerHTML = INVESTMENT_PLANS.map(plan => {
+        const dailyIncome = plan.minAmount * 0.10;
+        const totalIncome24Days = dailyIncome * 24;
+
+        return `
+            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-700 transition group">
+                <div>
+                    <div class="h-44 overflow-hidden relative bg-slate-900">
+                        <img src="${plan.image}" alt="${plan.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent"></div>
+                        <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-800 text-white text-[10px] font-bold uppercase tracking-wider rounded-md shadow">${plan.tag}</span>
+                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase rounded-full shadow">24h Auto-Yield</span>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+                            <div class="flex justify-between text-slate-500 font-medium"><span>Minimum Capital:</span><strong class="text-slate-900 font-bold">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
+                            <div class="flex justify-between text-slate-500 font-medium"><span>Daily Return (10%):</span><strong class="text-emerald-800 font-bold">₦${Number(dailyIncome).toLocaleString()} / 24h</strong></div>
+                            <div class="flex justify-between text-slate-500 font-medium pt-1.5 border-t border-slate-200"><span>Total Return (24 Days):</span><strong class="text-slate-900 font-bold">₦${Number(totalIncome24Days).toLocaleString()}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 pt-0">
+                    <button onclick="openInvestModalById(${plan.id})" class="w-full py-3 bg-[#09120e] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
+                        <span>Deploy Capital</span>
+                        <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openInvestModalById(planId) {
+    const plan = INVESTMENT_PLANS.find(p => p.id === planId);
+    if (!plan) return;
+    selectedPlanForInvest = plan;
+    document.getElementById('invest-modal-title').innerText = `Invest in ${plan.name}`;
+    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily Auto Return (Every 24h) for 24 Days`;
+    document.getElementById('invest-amount').value = plan.minAmount;
+    document.getElementById('modal-invest').classList.remove('hidden');
+}
+
 function setupRealtimeSync() {
     if (!supabaseClient || !currentUser) return;
 
@@ -122,7 +171,7 @@ async function updateGlobalUIStrings() {
     document.querySelectorAll('.label-min-wit').forEach(el => el.innerText = '₦' + Number(s.minWithdrawal).toLocaleString());
     
     const ubaDisplay = document.getElementById('display-uba-info');
-    if (ubaDisplay) ubaDisplay.innerText = `${s.ubaAccountNumber} (${s.ubaAccountName})`;
+    if (ubaDisplay) ubaDisplay.innerText = `${s.ubaAccountNumber} (${s.ubaAccountName}) — UBA`;
     const ubaModalName = document.getElementById('modal-uba-name');
     if (ubaModalName) ubaModalName.innerText = s.ubaAccountName;
     const ubaAccNum = document.getElementById('uba-acc-num');
@@ -131,7 +180,7 @@ async function updateGlobalUIStrings() {
     const feePct = document.getElementById('label-fee-pct');
     if (feePct) feePct.innerText = s.withdrawalFeePercent;
     const feeLabel = document.getElementById('w-fee-label');
-    if (feeLabel) feeLabel.innerText = `Platform Fee (${s.withdrawalFeePercent}%):`;
+    if (feeLabel) feeLabel.innerText = `Processing Fee (${s.withdrawalFeePercent}%):`;
 }
 
 function runStrict24HourYieldDaemon() {
@@ -173,8 +222,8 @@ function runStrict24HourYieldDaemon() {
 }
 
 function switchAuthTab(tab) {
-    document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
-    document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 transition';
+    document.getElementById('tab-login').className = tab === 'login' ? 'flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg text-slate-500 transition';
+    document.getElementById('tab-register').className = tab === 'register' ? 'flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg bg-white text-slate-900 shadow-sm transition' : 'flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg text-slate-500 transition';
     
     document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
     document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
@@ -300,6 +349,7 @@ function completeLogin() {
     }
 
     setupRealtimeSync();
+    renderExplorePlans();
     switchTab('overview');
     loadUserData();
 }
@@ -321,6 +371,7 @@ function unlockApp() {
     }
 
     setupRealtimeSync();
+    renderExplorePlans();
     switchTab('overview');
     loadUserData();
 }
@@ -332,43 +383,6 @@ function toggleMobileSidebar() {
     backdrop.classList.toggle('hidden');
 }
 
-function renderExplorePlans() {
-    const container = document.getElementById('plans-container');
-    if (!container) return;
-
-    container.innerHTML = INVESTMENT_PLANS.map(plan => {
-        const dailyIncome = plan.minAmount * 0.10;
-        const totalIncome24Days = dailyIncome * 24;
-
-        return `
-            <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-600 transition group">
-                <div>
-                    <div class="h-40 overflow-hidden relative">
-                        <img src="${plan.image}" alt="${plan.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                        <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-700 text-white text-[10px] font-bold rounded-lg">${plan.tag}</span>
-                        <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full">24h Auto-Yield</span>
-                    </div>
-                    <div class="p-6 space-y-3">
-                        <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
-                            <div class="flex justify-between text-slate-500"><span>Minimum Capital:</span><strong class="text-slate-900">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
-                            <div class="flex justify-between text-slate-500"><span>Daily Drop (10%):</span><strong class="text-emerald-700">₦${Number(dailyIncome).toLocaleString()} / 24h</strong></div>
-                            <div class="flex justify-between text-slate-500 pt-1 border-t border-slate-200"><span>Total Return (24 Days):</span><strong class="text-slate-900 font-bold">₦${Number(totalIncome24Days).toLocaleString()}</strong></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-6 pt-0">
-                    <button onclick='openInvestModal(${JSON.stringify(plan)})' class="w-full py-3 bg-[#0d1914] text-white rounded-xl font-semibold text-sm hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
-                        <span>Invest Plan (${plan.tag.split(' ')[0]} ${plan.tag.split(' ')[1]})</span>
-                        <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
 async function loadUserData() {
     if (!currentUser) return;
     await refreshUserDataFromSupabase();
@@ -377,7 +391,7 @@ async function loadUserData() {
     document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
     document.getElementById('topbar-username').innerText = currentUser.name;
     document.getElementById('topbar-bankinfo').innerText = currentUser.accountNumber ? `${currentUser.bank || 'Bank'} • ${currentUser.accountNumber}` : 'No Bank Set';
-    document.getElementById('topbar-bank-tag').innerText = currentUser.accountNumber ? 'Edit Bank Account' : 'Set Bank Account';
+    document.getElementById('topbar-bank-tag').innerText = currentUser.accountNumber ? 'Edit Bank Account' : 'Configure Bank';
     document.getElementById('user-initials-badge').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
     
     const userRefCode = currentUser.refCode || 'KUDIVA-LEKKXY26';
@@ -415,6 +429,13 @@ function updateUserUI() {
     document.getElementById('stat-available-balance').innerText = fmtBal;
     document.getElementById('stat-daily-yield').innerText = fmtYield;
     document.getElementById('portfolio-total-large').innerText = fmtPort;
+    
+    const exploreBalTag = document.getElementById('explore-balance-tag');
+    if (exploreBalTag) exploreBalTag.innerText = fmtBal;
+
+    const pendingCount = currentUser.transactions ? currentUser.transactions.filter(t => t.status && t.status.includes('Pending')).length : 0;
+    const pendingStat = document.getElementById('stat-pending-count');
+    if (pendingStat) pendingStat.innerText = pendingCount;
 
     const tbody = document.getElementById('transactions-table-body');
     if (!currentUser.transactions || currentUser.transactions.length === 0) {
@@ -442,13 +463,13 @@ function updateUserUI() {
             const minutes = Math.floor((timeLeft % 3600) / 60);
 
             return `
-                <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                         <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
                         <p class="text-xs text-slate-500">Principal: ₦${Number(inv.amount).toLocaleString()} · Daily Drop: ₦${Number(inv.amount * 0.10).toLocaleString()} · Days Left: <strong>${inv.daysRemaining}/24</strong></p>
                     </div>
                     <div class="text-right bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 text-xs">
-                        <span class="text-emerald-800 font-bold block"><i class="fa-solid fa-clock mr-1"></i> Next Yield Drop in:</span>
+                        <span class="text-emerald-900 font-bold block"><i class="fa-solid fa-clock mr-1"></i> Next Yield Drop in:</span>
                         <strong class="font-mono text-emerald-950">${hours}h ${minutes}m</strong>
                     </div>
                 </div>
@@ -460,13 +481,13 @@ function updateUserUI() {
     goalsList.innerHTML = currentUser.goals.map(g => {
         const pct = Math.min(100, Math.round((g.current / g.target) * 100));
         return `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                 <div class="flex justify-between items-center text-sm">
                     <span class="font-bold text-slate-900">${g.name}</span>
-                    <span class="font-bold text-emerald-700">${pct}%</span>
+                    <span class="font-bold text-emerald-800">${pct}%</span>
                 </div>
                 <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div class="bg-emerald-600 h-full rounded-full" style="width: ${pct}%"></div>
+                    <div class="bg-emerald-700 h-full rounded-full" style="width: ${pct}%"></div>
                 </div>
                 <div class="flex justify-between text-[11px] text-slate-500">
                     <span>Current: ₦${Number(g.current).toLocaleString()}</span>
@@ -481,13 +502,13 @@ function updateUserUI() {
         ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted yet.</div>`;
     } else {
         ticketsList.innerHTML = currentUser.tickets.map(t => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                 <div class="flex justify-between text-xs font-bold text-slate-700">
                     <span>${t.category}</span>
                     <span class="text-slate-400">${t.date}</span>
                 </div>
-                <p class="text-xs text-slate-600"><strong>Query:</strong> ${t.msg}</p>
-                <p class="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200"><strong>Admin Reply:</strong> ${t.reply || 'Pending Admin review...'}</p>
+                <p class="text-xs text-slate-700"><strong>Query:</strong> ${t.msg}</p>
+                <p class="text-xs text-emerald-900 bg-emerald-50 p-3 rounded-xl border border-emerald-200"><strong>Admin Reply:</strong> ${t.reply || 'Pending Admin review...'}</p>
             </div>
         `).join('');
     }
@@ -526,7 +547,7 @@ async function loadReferralDownlines() {
                     </td>
                     <td class="p-4 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                     <td class="p-4 font-bold text-slate-900">₦${userInvested.toLocaleString()}</td>
-                    <td class="p-4 font-bold text-emerald-700">₦${commEarned.toLocaleString()}</td>
+                    <td class="p-4 font-bold text-emerald-800">₦${commEarned.toLocaleString()}</td>
                 </tr>
             `;
         });
@@ -539,6 +560,10 @@ async function loadReferralDownlines() {
 }
 
 function switchTab(tabId) {
+    if (tabId === 'explore') {
+        renderExplorePlans();
+    }
+
     if (tabId === 'admin-dashboard') {
         if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') {
             alert('Access Denied. Admin Dashboard is restricted to omoopeola1@gmail.com.');
@@ -550,32 +575,33 @@ function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('#nav-menu button').forEach(el => {
         if (el.getAttribute('data-tab') !== 'admin-dashboard') {
-            el.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition hover:bg-emerald-950/50 text-slate-300';
+            el.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition hover:bg-emerald-950/50 text-slate-300';
         }
     });
 
-    document.getElementById('view-' + tabId).classList.add('active');
+    const viewEl = document.getElementById('view-' + tabId);
+    if (viewEl) viewEl.classList.add('active');
     
     const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
     if (activeBtn) {
         if (tabId === 'admin-dashboard') {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold transition bg-amber-500 text-emerald-950 shadow-sm';
+            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40';
         } else {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition bg-emerald-950 text-white shadow-sm';
+            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition bg-emerald-950 text-emerald-300 border border-emerald-800/40 shadow-sm';
         }
     }
     
     const titles = {
-        overview: 'Your wealth, clearly understood',
-        portfolio: 'My portfolio',
+        overview: 'Executive Overview',
+        portfolio: 'Portfolio Holdings',
         explore: 'Explore 10 Investment Plans',
-        transactions: 'Transactions & Approvals',
-        planning: 'Financial planning',
-        rewards: 'Rewards & referrals',
-        support: 'Help & support',
-        'admin-dashboard': 'Admin Control Center'
+        transactions: 'Ledger & Approvals',
+        planning: 'Compound Calculator',
+        rewards: 'Referral Network',
+        support: 'Client Support Desk',
+        'admin-dashboard': 'Admin Management'
     };
-    document.getElementById('current-breadcrumb').innerText = titles[tabId];
+    document.getElementById('current-breadcrumb').innerText = titles[tabId] || 'Overview';
 
     if (window.innerWidth < 768) {
         const sidebar = document.getElementById('user-sidebar');
@@ -592,7 +618,7 @@ function switchAdminTab(subId) {
     ['approvals', 'users', 'tickets', 'settings'].forEach(id => {
         const btn = document.getElementById('adm-btn-' + id);
         if (btn) {
-            btn.className = subId === id ? 'px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-700 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 border border-slate-200 transition shrink-0';
+            btn.className = subId === id ? 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-emerald-800 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-white text-slate-700 border border-slate-200 transition shrink-0';
         }
     });
 
@@ -646,14 +672,6 @@ function openWithdrawModal() {
 }
 function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-function openInvestModal(plan) {
-    selectedPlanForInvest = plan;
-    document.getElementById('invest-modal-title').innerText = `Invest in ${plan.name}`;
-    document.getElementById('invest-modal-subtitle').innerText = `Min ₦${Number(plan.minAmount).toLocaleString()} · 10% Daily Auto Return (Every 24h) for 24 Days`;
-    document.getElementById('invest-amount').value = plan.minAmount;
-    document.getElementById('modal-invest').classList.remove('hidden');
-}
 
 async function copyUBAAccount() {
     const s = await getPlatformSettings();
@@ -845,7 +863,7 @@ async function executeInvestment() {
 
     await persistUserData();
     closeModal('modal-invest');
-    alert(`Successfully invested ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name}! First 10% daily yield will drop in exactly 24 hours.`);
+    alert(`Successfully deployed ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name}! First 10% daily yield will drop in exactly 24 hours.`);
 }
 
 async function distributeReferralCommissions(investAmount) {
@@ -903,7 +921,7 @@ async function submitSupportTicket() {
 
     await persistUserData();
     document.getElementById('support-msg').value = '';
-    alert('Support ticket submitted to Admin successfully!');
+    alert('Support ticket submitted successfully to Admin desk.');
     await refreshUserDataFromSupabase();
 }
 
@@ -943,7 +961,7 @@ async function loadAdminDashboard() {
                 <td class="p-4 text-xs text-slate-600">${item.details}</td>
                 <td class="p-4 text-xs text-slate-500">${new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                 <td class="p-4 text-right space-x-2">
-                    <button onclick="adminApprove('${item.request_id}')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition">Approve</button>
+                    <button onclick="adminApprove('${item.request_id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition">Approve</button>
                     <button onclick="adminReject('${item.request_id}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">Reject</button>
                 </td>
             </tr>
@@ -966,7 +984,7 @@ async function loadAdminDashboard() {
                 </td>
                 <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
                 <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
-                <td class="p-4 font-bold text-emerald-700">₦${Number(u.daily_yield).toLocaleString()}</td>
+                <td class="p-4 font-bold text-emerald-800">₦${Number(u.daily_yield).toLocaleString()}</td>
                 <td class="p-4 text-right space-x-2">
                     <button onclick="adminCreditUser('${u.email}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition">+ Credit</button>
                 </td>
@@ -979,7 +997,7 @@ async function loadAdminDashboard() {
         ticketsList.innerHTML = `<div class="text-slate-400 text-xs italic">No support tickets submitted.</div>`;
     } else {
         ticketsList.innerHTML = ticketsData.map((t) => `
-            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                 <div class="flex justify-between text-xs font-bold text-slate-700">
                     <span>User: ${t.user_email} (${t.category})</span>
                     <span class="text-slate-400">${new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
@@ -987,7 +1005,7 @@ async function loadAdminDashboard() {
                 <p class="text-xs text-slate-800"><strong>Query:</strong> ${t.message}</p>
                 <div class="flex space-x-2 pt-2">
                     <input type="text" id="admin-reply-${t.id}" placeholder="Type admin response..." value="${t.reply || ''}" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
-                    <button onclick="adminSendReply('${t.id}')" class="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 transition">Send Reply</button>
+                    <button onclick="adminSendReply('${t.id}')" class="px-4 py-2 bg-emerald-800 text-white rounded-xl text-xs font-bold hover:bg-emerald-900 transition">Send Reply</button>
                 </div>
             </div>
         `).join('');
