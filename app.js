@@ -47,7 +47,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const refParam = urlParams.get('ref');
     if (refParam) {
         const refInput = document.getElementById('reg-refcode');
-        if (refInput) refInput.value = refParam.toUpperCase();
+        if (refInput) refInput.value = refParam.trim().toUpperCase();
         switchAuthTab('register');
     }
 
@@ -63,7 +63,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateGlobalUIStrings();
 });
 
-// Render the 10 Investment Plans cleanly using data-id attributes to avoid inline JSON issues
 function renderExplorePlans() {
     const container = document.getElementById('plans-container');
     if (!container) return;
@@ -81,8 +80,8 @@ function renderExplorePlans() {
                         <span class="absolute bottom-3 left-4 px-2.5 py-1 bg-emerald-800 text-white text-[10px] font-bold uppercase tracking-wider rounded-md shadow">${plan.tag}</span>
                         <span class="absolute top-3 right-3 px-2.5 py-1 bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase rounded-full shadow">24h Auto-Yield</span>
                     </div>
-                    <div class="p-6 space-y-3">
-                        <h3 class="font-serif font-bold text-lg text-slate-900">${plan.name}</h3>
+                    <div class="p-5 sm:p-6 space-y-3">
+                        <h3 class="font-serif font-bold text-base sm:text-lg text-slate-900">${plan.name}</h3>
                         <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
                             <div class="flex justify-between text-slate-500 font-medium"><span>Minimum Capital:</span><strong class="text-slate-900 font-bold">₦${Number(plan.minAmount).toLocaleString()}</strong></div>
                             <div class="flex justify-between text-slate-500 font-medium"><span>Daily Return (10%):</span><strong class="text-emerald-800 font-bold">₦${Number(dailyIncome).toLocaleString()} / 24h</strong></div>
@@ -90,8 +89,8 @@ function renderExplorePlans() {
                         </div>
                     </div>
                 </div>
-                <div class="p-6 pt-0">
-                    <button onclick="openInvestModalById(${plan.id})" class="w-full py-3 bg-[#09120e] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
+                <div class="p-5 sm:p-6 pt-0">
+                    <button onclick="openInvestModalById(${plan.id})" class="w-full py-3.5 sm:py-3 bg-[#09120e] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-emerald-900 transition flex items-center justify-center space-x-2 shadow">
                         <span>Deploy Capital</span>
                         <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
                     </button>
@@ -136,6 +135,8 @@ async function refreshUserDataFromSupabase() {
         currentUser.dailyYield = parseFloat(profile.daily_yield) || 0;
         currentUser.hasFunded = profile.has_funded;
         currentUser.hasActivatedInvestment = profile.has_activated_investment;
+        currentUser.uplineRef = profile.upline_ref || '';
+        currentUser.refCode = profile.ref_code || currentUser.refCode;
     }
 
     const { data: txs } = await supabaseClient.from('transactions').select('*').eq('user_email', currentUser.email).order('created_at', { ascending: false });
@@ -249,7 +250,6 @@ async function handleLogin(e) {
             hasActivatedInvestment: true,
             investments: [],
             transactions: [],
-            goals: [],
             tickets: []
         };
         completeLogin();
@@ -257,7 +257,7 @@ async function handleLogin(e) {
     }
 
     if (supabaseClient) {
-        const { data, error } = await supabaseClient.from('profiles').select('*').eq('email', email).single();
+        const { data } = await supabaseClient.from('profiles').select('*').eq('email', email).single();
         if (data) {
             currentUser = {
                 name: data.name,
@@ -274,7 +274,6 @@ async function handleLogin(e) {
                 hasActivatedInvestment: data.has_activated_investment,
                 investments: [],
                 transactions: [],
-                goals: [{ name: 'Emergency Reserve', target: 500000, current: 0 }],
                 tickets: []
             };
 
@@ -317,7 +316,6 @@ async function handleRegister(e) {
         hasActivatedInvestment: false,
         investments: [],
         transactions: [],
-        goals: [{ name: 'Initial Savings Target', target: 200000, current: 0 }],
         tickets: []
     };
 
@@ -391,7 +389,7 @@ async function loadUserData() {
     document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName}`;
     document.getElementById('topbar-username').innerText = currentUser.name;
     document.getElementById('topbar-bankinfo').innerText = currentUser.accountNumber ? `${currentUser.bank || 'Bank'} • ${currentUser.accountNumber}` : 'No Bank Set';
-    document.getElementById('topbar-bank-tag').innerText = currentUser.accountNumber ? 'Edit Bank Account' : 'Configure Bank';
+    document.getElementById('topbar-bank-tag').innerText = currentUser.accountNumber ? 'Edit Bank' : 'Set Bank';
     document.getElementById('user-initials-badge').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
     
     const userRefCode = currentUser.refCode || 'KUDIVA-LEKKXY26';
@@ -443,19 +441,19 @@ function updateUserUI() {
     } else {
         tbody.innerHTML = currentUser.transactions.map(tx => `
             <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-semibold text-slate-900">${tx.desc}</td>
-                <td class="p-4 text-xs font-mono text-slate-500">${tx.ref}</td>
-                <td class="p-4 text-xs text-slate-500">${tx.date}</td>
-                <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">${tx.type}</span></td>
-                <td class="p-4 font-bold text-slate-900">${tx.amount}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' || tx.status.includes('Balance') || tx.status.includes('Paid') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
+                <td class="p-3.5 sm:p-4 font-semibold text-slate-900">${tx.desc}</td>
+                <td class="p-3.5 sm:p-4 text-xs font-mono text-slate-500">${tx.ref}</td>
+                <td class="p-3.5 sm:p-4 text-xs text-slate-500">${tx.date}</td>
+                <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">${tx.type}</span></td>
+                <td class="p-3.5 sm:p-4 font-bold text-slate-900">${tx.amount}</td>
+                <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 ${tx.status === 'Success' || tx.status.includes('Balance') || tx.status.includes('Paid') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${tx.status}</span></td>
             </tr>
         `).join('');
     }
 
     const holdingsList = document.getElementById('portfolio-holdings-list');
     if (!currentUser.investments || currentUser.investments.length === 0) {
-        holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore our 10 plans to earn daily for 24 days.</div>`;
+        holdingsList.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs sm:text-sm"><i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300 block"></i>No active investments yet. Explore our 10 plans to earn daily for 24 days.</div>`;
     } else {
         holdingsList.innerHTML = currentUser.investments.map((inv) => {
             const timeLeft = Math.max(0, Math.floor((inv.nextYieldDue - Date.now()) / 1000));
@@ -468,7 +466,7 @@ function updateUserUI() {
                         <h5 class="font-bold text-slate-900 text-sm">${inv.name}</h5>
                         <p class="text-xs text-slate-500">Principal: ₦${Number(inv.amount).toLocaleString()} · Daily Drop: ₦${Number(inv.amount * 0.10).toLocaleString()} · Days Left: <strong>${inv.daysRemaining}/24</strong></p>
                     </div>
-                    <div class="text-right bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 text-xs">
+                    <div class="text-left sm:text-right bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 text-xs w-full sm:w-auto">
                         <span class="text-emerald-900 font-bold block"><i class="fa-solid fa-clock mr-1"></i> Next Yield Drop in:</span>
                         <strong class="font-mono text-emerald-950">${hours}h ${minutes}m</strong>
                     </div>
@@ -476,26 +474,6 @@ function updateUserUI() {
             `;
         }).join('');
     }
-
-    const goalsList = document.getElementById('goals-list');
-    goalsList.innerHTML = currentUser.goals.map(g => {
-        const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-        return `
-            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
-                <div class="flex justify-between items-center text-sm">
-                    <span class="font-bold text-slate-900">${g.name}</span>
-                    <span class="font-bold text-emerald-800">${pct}%</span>
-                </div>
-                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div class="bg-emerald-700 h-full rounded-full" style="width: ${pct}%"></div>
-                </div>
-                <div class="flex justify-between text-[11px] text-slate-500">
-                    <span>Current: ₦${Number(g.current).toLocaleString()}</span>
-                    <span>Target: ₦${Number(g.target).toLocaleString()}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
 
     const ticketsList = document.getElementById('user-tickets-list');
     if (!currentUser.tickets || currentUser.tickets.length === 0) {
@@ -541,13 +519,13 @@ async function loadReferralDownlines() {
 
             rowsHtml += `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4">
+                    <td class="p-3.5 sm:p-4">
                         <div class="font-bold text-slate-900">${d.name}</div>
                         <div class="text-xs text-slate-500">${d.email}</div>
                     </td>
-                    <td class="p-4 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td class="p-4 font-bold text-slate-900">₦${userInvested.toLocaleString()}</td>
-                    <td class="p-4 font-bold text-emerald-800">₦${commEarned.toLocaleString()}</td>
+                    <td class="p-3.5 sm:p-4 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td class="p-3.5 sm:p-4 font-bold text-slate-900">₦${userInvested.toLocaleString()}</td>
+                    <td class="p-3.5 sm:p-4 font-bold text-emerald-800">₦${commEarned.toLocaleString()}</td>
                 </tr>
             `;
         });
@@ -564,6 +542,10 @@ function switchTab(tabId) {
         renderExplorePlans();
     }
 
+    if (tabId === 'rewards') {
+        loadReferralDownlines();
+    }
+
     if (tabId === 'admin-dashboard') {
         if (!currentUser || currentUser.email.toLowerCase() !== 'omoopeola1@gmail.com') {
             alert('Access Denied. Admin Dashboard is restricted to omoopeola1@gmail.com.');
@@ -575,7 +557,16 @@ function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('#nav-menu button').forEach(el => {
         if (el.getAttribute('data-tab') !== 'admin-dashboard') {
-            el.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition hover:bg-emerald-950/50 text-slate-300';
+            el.className = 'w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wide transition hover:bg-emerald-950/50 text-slate-300';
+        }
+    });
+
+    // Update mobile bottom navigation active states
+    document.querySelectorAll('[data-mobile-tab]').forEach(btn => {
+        if (btn.getAttribute('data-mobile-tab') === tabId) {
+            btn.className = 'flex flex-col items-center justify-center py-1 px-2 text-emerald-800 font-bold text-[10px]';
+        } else {
+            btn.className = 'flex flex-col items-center justify-center py-1 px-2 text-slate-400 font-semibold text-[10px]';
         }
     });
 
@@ -585,9 +576,9 @@ function switchTab(tabId) {
     const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
     if (activeBtn) {
         if (tabId === 'admin-dashboard') {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-xs font-bold transition bg-amber-500/20 text-amber-300 border border-amber-500/40';
         } else {
-            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition bg-emerald-950 text-emerald-300 border border-emerald-800/40 shadow-sm';
+            activeBtn.className = 'w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wide transition bg-emerald-950 text-emerald-300 border border-emerald-800/40 shadow-sm';
         }
     }
     
@@ -596,7 +587,6 @@ function switchTab(tabId) {
         portfolio: 'Portfolio Holdings',
         explore: 'Explore 10 Investment Plans',
         transactions: 'Ledger & Approvals',
-        planning: 'Compound Calculator',
         rewards: 'Referral Network',
         support: 'Client Support Desk',
         'admin-dashboard': 'Admin Management'
@@ -618,7 +608,7 @@ function switchAdminTab(subId) {
     ['approvals', 'users', 'tickets', 'settings'].forEach(id => {
         const btn = document.getElementById('adm-btn-' + id);
         if (btn) {
-            btn.className = subId === id ? 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-emerald-800 text-white transition shadow shrink-0' : 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-white text-slate-700 border border-slate-200 transition shrink-0';
+            btn.className = subId === id ? 'px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-emerald-800 text-white transition shadow shrink-0' : 'px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-white text-slate-700 border border-slate-200 transition shrink-0';
         }
     });
 
@@ -670,7 +660,6 @@ function openWithdrawModal() {
     calculateWithdrawFee(); 
     document.getElementById('modal-withdraw').classList.remove('hidden'); 
 }
-function openGoalModal() { document.getElementById('modal-goal').classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 async function copyUBAAccount() {
@@ -856,43 +845,112 @@ async function executeInvestment() {
         });
     }
 
-    if (!currentUser.hasActivatedInvestment) {
-        currentUser.hasActivatedInvestment = true;
-        await distributeReferralCommissions(amount);
-    }
+    // Always trigger multi-tier referral commission distribution on investment
+    currentUser.hasActivatedInvestment = true;
+    await distributeReferralCommissions(amount);
 
     await persistUserData();
     closeModal('modal-invest');
     alert(`Successfully deployed ₦${amount.toLocaleString()} into ${selectedPlanForInvest.name}! First 10% daily yield will drop in exactly 24 hours.`);
 }
 
+// Fixed Multi-Tier Referral Reward Distribution (Level 1: 10%, Level 2: 3%, Level 3: 1%)
 async function distributeReferralCommissions(investAmount) {
-    if (!currentUser.uplineRef || !supabaseClient) return;
-    const { data: uplineUser } = await supabaseClient.from('profiles').select('*').eq('ref_code', currentUser.uplineRef).single();
+    if (!supabaseClient || !currentUser) return;
 
-    if (uplineUser && uplineUser.email !== currentUser.email) {
-        let comm1 = investAmount * 0.10;
-        let newBalance = parseFloat(uplineUser.balance) + comm1;
+    // Fetch latest upline_ref from database to ensure accuracy
+    const { data: freshProfile } = await supabaseClient
+        .from('profiles')
+        .select('upline_ref, name')
+        .eq('email', currentUser.email)
+        .single();
 
-        await supabaseClient.from('profiles').update({ balance: newBalance }).eq('email', uplineUser.email);
+    const uplineCodeL1 = (freshProfile?.upline_ref || currentUser.uplineRef || '').trim().toUpperCase();
+    if (!uplineCodeL1) return;
+
+    // LEVEL 1: 10% Commission
+    const { data: upline1 } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .ilike('ref_code', uplineCodeL1)
+        .single();
+
+    if (upline1 && upline1.email !== currentUser.email) {
+        const comm1 = investAmount * 0.10;
+        const newBal1 = (parseFloat(upline1.balance) || 0) + comm1;
+
+        await supabaseClient
+            .from('profiles')
+            .update({ balance: newBal1 })
+            .eq('email', upline1.email);
+
         await supabaseClient.from('transactions').insert({
-            user_email: uplineUser.email,
+            user_email: upline1.email,
             description: `Referral Commission (Level 1 - 10% from ${currentUser.name})`,
-            reference: 'REF-L1-' + Math.floor(1000 + Math.random() * 9000),
+            reference: 'REF-L1-' + Math.floor(100000 + Math.random() * 900000),
             type: 'Commission',
             amount: '₦' + comm1.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
             status: 'Success'
         });
-    }
-}
 
-async function executeCreateGoal() {
-    const name = document.getElementById('goal-name-input').value;
-    const target = parseFloat(document.getElementById('goal-target-input').value);
-    if (!name || !target) return alert('Fill in all fields');
-    currentUser.goals.push({ name, target, current: 0 });
-    await persistUserData();
-    closeModal('modal-goal');
+        // LEVEL 2: 3% Commission
+        const uplineCodeL2 = (upline1.upline_ref || '').trim().toUpperCase();
+        if (uplineCodeL2) {
+            const { data: upline2 } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .ilike('ref_code', uplineCodeL2)
+                .single();
+
+            if (upline2 && upline2.email !== currentUser.email) {
+                const comm2 = investAmount * 0.03;
+                const newBal2 = (parseFloat(upline2.balance) || 0) + comm2;
+
+                await supabaseClient
+                    .from('profiles')
+                    .update({ balance: newBal2 })
+                    .eq('email', upline2.email);
+
+                await supabaseClient.from('transactions').insert({
+                    user_email: upline2.email,
+                    description: `Referral Commission (Level 2 - 3% from ${currentUser.name})`,
+                    reference: 'REF-L2-' + Math.floor(100000 + Math.random() * 900000),
+                    type: 'Commission',
+                    amount: '₦' + comm2.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                    status: 'Success'
+                });
+
+                // LEVEL 3: 1% Commission
+                const uplineCodeL3 = (upline2.upline_ref || '').trim().toUpperCase();
+                if (uplineCodeL3) {
+                    const { data: upline3 } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .ilike('ref_code', uplineCodeL3)
+                        .single();
+
+                    if (upline3 && upline3.email !== currentUser.email) {
+                        const comm3 = investAmount * 0.01;
+                        const newBal3 = (parseFloat(upline3.balance) || 0) + comm3;
+
+                        await supabaseClient
+                            .from('profiles')
+                            .update({ balance: newBal3 })
+                            .eq('email', upline3.email);
+
+                        await supabaseClient.from('transactions').insert({
+                            user_email: upline3.email,
+                            description: `Referral Commission (Level 3 - 1% from ${currentUser.name})`,
+                            reference: 'REF-L3-' + Math.floor(100000 + Math.random() * 900000),
+                            type: 'Commission',
+                            amount: '₦' + comm3.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+                            status: 'Success'
+                        });
+                    }
+                }
+            }
+        }
+    }
 }
 
 async function submitSupportTicket() {
@@ -927,7 +985,7 @@ async function submitSupportTicket() {
 
 function togglePrivacy() {
     privacyMask = !privacyMask;
-    document.getElementById('privacy-icon').className = privacyMask ? 'fa-regular fa-eye-slash text-sm' : 'fa-regular fa-eye text-sm';
+    document.getElementById('privacy-icon').className = privacyMask ? 'fa-regular fa-eye-slash text-xs sm:text-sm' : 'fa-regular fa-eye text-xs sm:text-sm';
     updateUserUI();
 }
 
@@ -955,12 +1013,12 @@ async function loadAdminDashboard() {
     } else {
         appTable.innerHTML = queueData.map((item) => `
             <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-bold text-slate-900">${item.user_email}</td>
-                <td class="p-4"><span class="px-2.5 py-1 ${item.type === 'Deposit' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${item.type}</span></td>
-                <td class="p-4 font-bold text-slate-900">₦${Number(item.amount).toLocaleString()}</td>
-                <td class="p-4 text-xs text-slate-600">${item.details}</td>
-                <td class="p-4 text-xs text-slate-500">${new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                <td class="p-4 text-right space-x-2">
+                <td class="p-3.5 sm:p-4 font-bold text-slate-900">${item.user_email}</td>
+                <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 ${item.type === 'Deposit' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} text-xs rounded-full font-bold">${item.type}</span></td>
+                <td class="p-3.5 sm:p-4 font-bold text-slate-900">₦${Number(item.amount).toLocaleString()}</td>
+                <td class="p-3.5 sm:p-4 text-xs text-slate-600">${item.details}</td>
+                <td class="p-3.5 sm:p-4 text-xs text-slate-500">${new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                <td class="p-3.5 sm:p-4 text-right space-x-2">
                     <button onclick="adminApprove('${item.request_id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition">Approve</button>
                     <button onclick="adminReject('${item.request_id}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">Reject</button>
                 </td>
@@ -974,18 +1032,18 @@ async function loadAdminDashboard() {
     } else {
         usersTable.innerHTML = usersData.map(u => `
             <tr class="hover:bg-slate-50 transition">
-                <td class="p-4">
+                <td class="p-3.5 sm:p-4">
                     <div class="font-bold text-slate-900">${u.name}</div>
                     <div class="text-xs text-slate-500">${u.email} (${u.account_number ? u.bank + ' - ' + u.account_number : 'No Bank'})</div>
                 </td>
-                <td class="p-4 text-xs">
+                <td class="p-3.5 sm:p-4 text-xs">
                     <div class="font-mono font-bold text-emerald-800">${u.ref_code || 'N/A'}</div>
                     <div class="text-slate-500">Upline: ${u.upline_ref || 'None'}</div>
                 </td>
-                <td class="p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
-                <td class="p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
-                <td class="p-4 font-bold text-emerald-800">₦${Number(u.daily_yield).toLocaleString()}</td>
-                <td class="p-4 text-right space-x-2">
+                <td class="p-3.5 sm:p-4 font-bold text-slate-900">₦${Number(u.balance).toLocaleString()}</td>
+                <td class="p-3.5 sm:p-4 font-bold text-slate-900">₦${Number(u.invested).toLocaleString()}</td>
+                <td class="p-3.5 sm:p-4 font-bold text-emerald-800">₦${Number(u.daily_yield).toLocaleString()}</td>
+                <td class="p-3.5 sm:p-4 text-right space-x-2">
                     <button onclick="adminCreditUser('${u.email}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition">+ Credit</button>
                 </td>
             </tr>
@@ -1003,7 +1061,7 @@ async function loadAdminDashboard() {
                     <span class="text-slate-400">${new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
                 <p class="text-xs text-slate-800"><strong>Query:</strong> ${t.message}</p>
-                <div class="flex space-x-2 pt-2">
+                <div class="flex flex-col sm:flex-row gap-2 pt-2">
                     <input type="text" id="admin-reply-${t.id}" placeholder="Type admin response..." value="${t.reply || ''}" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
                     <button onclick="adminSendReply('${t.id}')" class="px-4 py-2 bg-emerald-800 text-white rounded-xl text-xs font-bold hover:bg-emerald-900 transition">Send Reply</button>
                 </div>
@@ -1124,12 +1182,4 @@ async function adminSendReply(ticketId) {
     await supabaseClient.from('support_tickets').update({ reply: replyText }).eq('id', ticketId);
     loadAdminDashboard();
     alert('Support reply sent successfully.');
-}
-
-async function calculateCompound() {
-    const p = parseFloat(document.getElementById('calc-principal').value) || 0;
-    const days = parseInt(document.getElementById('calc-days').value) || 24;
-    document.getElementById('days-display').innerText = `${days} Days`;
-    const total = p * Math.pow(1.10, days);
-    document.getElementById('calc-result').innerText = '₦' + Math.round(total).toLocaleString('en-NG');
 }
